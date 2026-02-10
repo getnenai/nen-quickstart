@@ -49,8 +49,8 @@ def run(input: Input) -> Output:
     """
     
     # Environment Setup: Launch browser and navigate
-    agent("Open Firefox or Chromium browser")
-    if not validate("Is the browser open?", timeout=10):
+    agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not validate("Is the Chromium browser open?", timeout=10):
         return Output(success=False, error="Failed to open browser")
     
     agent("Click the address bar at the top of the browser")

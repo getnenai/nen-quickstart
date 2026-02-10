@@ -40,9 +40,9 @@ def run(input: Input) -> Output:
     os.system("rm -f /artifacts/*.pdf 2>/dev/null")
     
     # Environment Setup: Launch browser and navigate
-    agent("Open Firefox browser")
-    if not validate("Is Firefox open?", timeout=10):
-        return Output(success=False, error="Failed to open Firefox")
+    agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not validate("Is the Chromium browser open?", timeout=10):
+        return Output(success=False, error="Failed to open Chromium browser")
     
     agent("Click the address bar at the top of the browser")
     keyboard.type("https://app.example.com")

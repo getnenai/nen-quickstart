@@ -11,7 +11,7 @@ alwaysApply: false
 
 - **OS:** Linux (Ubuntu-based)
 - **Keyboard/Mouse:** xdotool (Linux tool for input control)
-- **Browser:** Firefox
+- **Browser:** Chromium (open-source browser available in taskbar)
 - **Display:** Headless X11 with VNC recording
 
 ### Platform Compatibility
@@ -246,7 +246,8 @@ agent("Fill out the form", max_iterations=20)  # More time/retries
 
 ```python
 # Don't assume logged out
-agent("Open Firefox and navigate to https://example.com")
+agent("Click the Chromium browser icon in the taskbar")
+agent("Navigate to https://example.com")
 
 # Check actual state first
 if validate("Are we already logged in (dashboard visible)?"):

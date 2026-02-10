@@ -128,7 +128,8 @@ def handler(payload: dict) -> dict:
     website_url = payload.get("WEBSITE_URL", "https://example.com")
     
     # Perform workflow actions
-    agent(f"Open Firefox and navigate to {website_url}")
+    agent("Click the Chromium browser icon in the taskbar")
+    agent(f"Navigate to {website_url}")
     
     # Validate state
     if not validate("Is the website loaded?"):
@@ -195,7 +196,8 @@ def handler(payload: dict) -> dict:
     title_number = payload.get("TITLE_NUMBER", "1")
     
     # 2. Use natural language to control the computer
-    agent(f"Open Firefox and navigate to {website_url}")
+    agent("Click the Chromium browser icon in the taskbar")
+    agent(f"Navigate to {website_url}")
     
     # 3. Validate that we reached the expected state
     if not validate("Is the website loaded in the browser?"):
@@ -222,7 +224,7 @@ def handler(payload: dict) -> dict:
 
 **What This Does:**
 
-1. Opens Firefox browser
+1. Opens Chromium browser
 2. Navigates to specified URL
 3. Validates page loaded
 4. Extracts specific data using VLM
@@ -1275,7 +1277,7 @@ def handler(payload: dict) -> dict:
     
     try:
         checkpoint = "opening_browser"
-        agent("Open Firefox")
+        agent("Click the Chromium browser icon in the taskbar")
         
         checkpoint = "navigating"
         agent("Navigate to login page")
@@ -1416,7 +1418,7 @@ def handler(payload: dict) -> dict:
     
     # Status updates
     print("Opening browser...")
-    agent("Open Firefox")
+    agent("Click the Chromium browser icon in the taskbar")
     print("Browser opened successfully")
     
     # Data inspection (for debugging)
@@ -1708,8 +1710,8 @@ def extract_data() -> dict:
 def open_browser_and_navigate(url: str) -> bool:
     """Reusable browser opening function."""
     try:
-        agent("Open Firefox")
-        if not validate("Is Firefox open?", timeout=10):
+        agent("Click the Chromium browser icon in the taskbar")
+        if not validate("Is the Chromium browser open?", timeout=10):
             return False
         
         agent(f"Navigate to {url}")
@@ -1911,8 +1913,8 @@ def handler(payload: dict) -> dict:
     url = payload.get("WEBSITE_URL", "https://example.com")
     
     # Open browser and navigate
-    agent("Open Firefox")
-    if not validate("Is Firefox open?", timeout=10):
+    agent("Click the Chromium browser icon in the taskbar")
+    if not validate("Is the Chromium browser open?", timeout=10):
         return {"success": False, "error": "Failed to open browser"}
     
     agent(f"Navigate to {url}")

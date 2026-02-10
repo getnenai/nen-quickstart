@@ -13,10 +13,20 @@ You are an AI assistant helping to author NenAI computer use workflows using the
 
 - **Use Linux keyboard commands:** `keyboard.hotkey("ctrl", "a")` ❌ NOT `"command"`
 - **xdotool is the keyboard/mouse tool:** Linux key names only (ctrl, shift, alt, super)
-- **Browser:** Firefox (headless with VNC recording)
+- **Browser:** Chromium (open-source browser) - available in taskbar
 - **OS:** Ubuntu-based Linux container
 
-**Common mistake:** Using macOS "command" key crashes with `"No such key name 'command'"` error.
+**IMPORTANT: Browser Management**
+- Chromium browser needs to be opened at the start of workflows
+- ❌ **DO NOT use** `agent("Open Chromium")` or `agent("Open Google Chrome")` - this causes the VLM to use bash commands to install/launch browsers
+- ✅ **DO use** `agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")` or similar GUI-based instructions
+- ✅ **ALTERNATIVE:** Use visual instructions like `agent("Find and click the blue Chromium browser icon")`
+- After opening, verify with `validate("Is the Chromium browser open?")`
+
+**Common mistakes:**
+- Using macOS "command" key crashes with `"No such key name 'command'"` error
+- Using vague instructions like "Open Chromium" causes VLM to attempt bash installation commands (hits max iterations)
+- Solution: Be specific about clicking icons or using GUI elements to launch applications
 
 For detailed platform compatibility, see **@workflow-python-sdk**.
 
@@ -64,9 +74,12 @@ def run(input: Input) -> Output:
     Returns:
         Output model with workflow results
     """
-    # Workflow logic
-    agent(f"Open Firefox and navigate to {input.website_url}")
+    # Workflow logic - open Chromium and navigate
+    agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not validate("Is the Chromium browser open?", timeout=10):
+        return Output(success=False, error="Failed to open browser")
     
+    agent(f"Navigate to {input.website_url}")
     if not validate("Is the website loaded?"):
         return Output(success=False, error="Failed to load website")
     
@@ -174,12 +187,14 @@ keyboard.press("BackSpace")   # Delete
 
 ### Browser Automation
 ```python
-agent("Open Firefox")
-if not validate("Is Firefox open?", timeout=10):
+# Open Chromium using GUI-based instruction (avoids bash commands)
+agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+if not validate("Is the Chromium browser open?", timeout=10):
     return Output(success=False, error="Failed to open browser")
 
+# Navigate to target URL
 agent(f"Navigate to {input.url}")
-if not validate("Is page loaded?", timeout=20):
+if not validate("Is the page loaded?", timeout=20):
     return Output(success=False, error="Failed to load page")
 ```
 

@@ -11,9 +11,9 @@ from pydantic import BaseModel, Field
 class Input(BaseModel):
     """Input parameters for this workflow."""
     
-    web_url: str = Field(min_length=1, description="URL of the website to log in to")
-    username: str = Field(min_length=1, description="Username or email for login")
-    password: str = Field(min_length=1, description="Password for login")
+    web_url: str = Field(default="https://practicetestautomation.com/practice-test-login/", min_length=1, description="URL of the website to log in to")
+    username: str = Field(default="student", min_length=1, description="Username or email for login")
+    password: str = Field(default="Password123", min_length=1, description="Password for login")
 
 
 class Output(BaseModel):
@@ -36,8 +36,8 @@ def run(input: Input) -> Output:
     """
     
     # Environment Setup: Launch browser and navigate
-    agent("Open Firefox or Chromium browser")
-    if not validate("Is the browser open?", timeout=10):
+    agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not validate("Is the Chromium browser open?", timeout=10):
         return Output(success=False, error="Failed to open browser")
     
     # Dismiss any startup popups
@@ -53,7 +53,7 @@ def run(input: Input) -> Output:
     # Authentication: Login to the website
     agent(f"Click the username or email field and type '{input.username}'", max_iterations=5)
     
-    agent("Click the password field", max_iterations=3)
+    agent("Click the password field", max_iterations=10)
     keyboard.type(input.password, interval=0.01)
     
     agent("Click the Login or Sign In button", max_iterations=5)

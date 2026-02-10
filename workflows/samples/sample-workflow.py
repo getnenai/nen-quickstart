@@ -41,7 +41,8 @@ def run(input: Input) -> Output:
         Output model with workflow results.
     """
     # Use natural language to control the computer
-    agent(f"Open Firefox and navigate to {input.website_url}")
+    agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent(f"Navigate to {input.website_url}")
 
     # Validate that we reached the expected state
     if not validate("Is the website loaded in the browser?"):

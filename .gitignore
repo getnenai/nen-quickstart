@@ -19,3 +19,7 @@ Thumbs.db
 
 # Artifacts from workflow runs
 artifacts/
+
+# User-specific workflows (local development only)
+workflows/my_workflows/*
+!workflows/my_workflows/.gitkeep

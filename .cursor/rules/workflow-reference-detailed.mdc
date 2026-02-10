@@ -291,8 +291,8 @@ def handler(payload: dict) -> dict:
     url = payload.get("URL", "https://example.com")
     
     # Open and navigate
-    agent("Open Firefox")
-    if not validate("Is Firefox open?", timeout=10):
+    agent("Click the Chromium browser icon in the taskbar")
+    if not validate("Is the Chromium browser open?", timeout=10):
         return {"success": False, "error": "Failed to open browser"}
     
     agent(f"Navigate to {url}")

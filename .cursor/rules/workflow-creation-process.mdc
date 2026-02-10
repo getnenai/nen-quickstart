@@ -12,7 +12,6 @@ When the user wants to create a new workflow, follow this systematic process:
 **AFTER CALLING `nen_run()` AND OPENING THE BROWSER, YOU MUST IMMEDIATELY STOP AND WAIT FOR USER FEEDBACK.**
 
 - ❌ DO NOT automatically call `get_run_logs()`
-- ❌ DO NOT automatically call `get_run_video()`
 - ❌ DO NOT automatically call `nen_status()`
 - ❌ DO NOT automatically check workflow status
 - ❌ DO NOT automatically try to debug or fix issues
@@ -96,8 +95,8 @@ Validate the workflow using the NenAI validation tool before deployment:
    
    # Validate the workflow
    nen_validate(
-     workflow_content=workflow_content,
-     workflow_name="[workflow-name]"
+     content=workflow_content,
+     filename="workflow.py"
    )
    ```
 
@@ -148,8 +147,8 @@ Deploy to NenAI platform using MCP tools:
    # Read the workflow file content
    workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
    
-   # Update using files parameter
-   update_workflow(
+   # Update using files parameter with workflowId
+   nen_upload(
        workflowId="...",
        files=[{
            "filename": "workflow.py",
@@ -203,7 +202,7 @@ Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
    **AFTER OPENING THE BROWSER, YOUR RESPONSE MUST END. DO NOT CONTINUE.**
    
    - ❌ **Do NOT automatically check logs or status**
-   - ❌ **Do NOT call `get_run_logs()` or `get_run_video()` automatically**
+   - ❌ **Do NOT call `get_run_logs()` automatically**
    - ❌ **Do NOT call `nen_status()` automatically**
    - ❌ **Do NOT try to debug or fix anything automatically**
    - ❌ **Do NOT wait a few seconds and then check status**
@@ -219,7 +218,6 @@ Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
 
 5. **Wait for user to return:**
    - User may ask for logs: **ONLY THEN** call `get_run_logs(messageId="...")`
-   - User may ask for video: **ONLY THEN** call `get_run_video(messageId="...")`
    - User may report issues: **ONLY THEN** help debug and iterate (see Step 5)
    - User may be satisfied: workflow creation is complete!
 
@@ -268,17 +266,16 @@ After the user observes the workflow execution, iterate based on their feedback:
    - Compare logs to user's description of what should have happened
    - Identify the specific step where behavior diverged
    - Use log insights to fix the workflow code
-   - If needed, also get video: `get_run_video(messageId="...")`
 
-3. **Fix and re-deploy:**
+4. **Fix and re-deploy:**
    - Make changes to workflow.py based on feedback
    - **ALWAYS validate** after making changes: `nen_validate()`
-   - Deploy the updated workflow: `update_workflow()`
+   - Deploy the updated workflow: `nen_upload(workflowId="...", files=[...])`
    - Run again: `nen_run()`
    - **Open browser automatically**: `Shell(f'open "{liveViewUrl}"')`
    - **🛑 IMMEDIATELY STOP - End your response here and wait for user to observe again**
 
-4. **Repeat until satisfied:**
+5. **Repeat until satisfied:**
    - Continue the iterate cycle: change → validate → deploy → run → **STOP** → observe
    - User decides when the workflow meets their needs
    - **Every iteration MUST end with STOP after `nen_run()`**
@@ -492,7 +489,7 @@ if not validate("Is dashboard loaded?", timeout=30):
 **AFTER CALLING `nen_run()` AND OPENING THE BROWSER, YOUR RESPONSE MUST END IMMEDIATELY. NO EXCEPTIONS.**
 
 This is the #1 rule that must NEVER be violated:
-- ❌ Do NOT automatically call any debugging tools (`get_run_logs`, `get_run_video`, `nen_status`)
+- ❌ Do NOT automatically call any debugging tools (`get_run_logs`, `nen_status`)
 - ❌ Do NOT automatically check workflow status or results
 - ❌ Do NOT wait a few seconds and then check status
 - ❌ Do NOT make any additional tool calls after opening the browser
@@ -522,12 +519,10 @@ This is the #1 rule that must NEVER be violated:
 | 1. Build | Create workflow.py | `Write`, `StrReplace` | Continue |
 | 1a. Lint | Check syntax | `ReadLints` | Continue |
 | 2. Validate | Validate workflow structure | `nen_validate` | Continue if valid |
-| 3. Deploy | Upload to platform | `nen_upload` or `update_workflow` | Continue |
+| 3. Deploy | Upload to platform | `nen_upload` (with or without `workflowId`) | Continue |
 | 4. Run | Execute workflow | `nen_run` | Continue |
 | 4a. Open Browser | Open live view URL | `Shell` with `open` command | **🛑 STOP IMMEDIATELY** |
 | 5. Iterate | Fix based on user feedback | Back to Step 1 or 2 | Depends on step |
 | 5a. Debug | **Get logs when user reports issues** | `get_run_logs` | Continue |
-| (Optional) | Get video if visual debugging needed | `get_run_video` | Continue |
-| (Optional) | Get artifacts **when user asks** | `nen_artifacts` | Continue |
 
 **⚠️ REMEMBER: After `nen_run()` and opening the browser, your response MUST end immediately. The browser will automatically open and the user will observe the workflow execution and return with feedback.**

@@ -5,6 +5,30 @@ alwaysApply: true
 
 # NenAI Workflow Creation Process
 
+## 🔴 CURRENT MODE: DOWN (MCP Server Offline)
+
+> **Set this to `ONLINE` once the MCP server is restored.**
+
+### 🚨 DOWN MODE — Active now. Only Step 1 applies. 🚨
+
+**The NenAI MCP server is offline. Do NOT attempt to use any MCP tools.**
+
+- ❌ Skip Step 2 (Validate via `nen_validate`) — cannot be reached
+- ❌ Skip Step 3 (Deploy via `nen_upload`) — cannot be reached
+- ❌ Skip Step 4 (Run via `nen_run`) — cannot be reached
+- ✅ Only perform Step 1 (Build) — write and review `workflow.py` locally
+- ✅ If the user asks to deploy or run, tell them the MCP server is currently down
+
+> ⛔ **PRECEDENCE RULE: While in DOWN mode, all steps and instructions below that reference MCP tools (`nen_validate`, `nen_upload`, `nen_run`, `nen_list_workflows`, `get_run_logs`, `nen_status`) are disabled. Only the build/local-authoring guidance in Step 1 applies.**
+
+---
+
+### 🟢 ONLINE MODE — Use only when MCP server is confirmed back online.
+
+> The full Steps 1–5 process below applies only when the mode above is set to **ONLINE**.
+
+---
+
 When the user wants to create a new workflow, follow this systematic process:
 
 ## ⚠️ CRITICAL RULE: STOP AFTER RUNNING WORKFLOWS ⚠️
@@ -35,10 +59,10 @@ Create the Python SDK workflow file using `nen.workflow` primitives:
 2. **Author the workflow:**
    - Use the Python SDK template from `workflow-core.mdc`
    - Include proper docstring with workflow description
-   - Define Pydantic `Input` and `Output` models with type hints
-   - Implement `run(input: Input) -> Output` function
-   - Use SDK primitives: `agent()`, `validate()`, `extract()`, `keyboard`, `mouse`
-   - Return Pydantic `Output` model with `success: bool` field
+   - Define Pydantic `Params` and `Result` models with type hints
+   - Implement `run(params: Params) -> Result` function
+   - Use SDK primitives: `Agent` (`agent.execute()`, `agent.verify()`, `agent.extract()`), `Computer` (`computer.type()`, `computer.press()`, `computer.mouse`)
+   - Return Pydantic `Result` model with `success: bool` field
 
 3. **Validate locally:**
    - Check syntax using `Read` + `ReadLints` tools
@@ -54,27 +78,26 @@ Before validating and deploying your workflow, verify these common issues:
 - [ ] All keyboard modifiers are Linux-compatible (ctrl, shift, alt, super)
 - [ ] No macOS-specific commands (Command key will crash with xdotool error)
 
-### ✅ Field Handling
-- [ ] **All input fields are cleared before typing** (use `ctrl+a` → `BackSpace`)
-- [ ] Fields with pre-existing content are explicitly cleared
-- [ ] No assumptions about empty fields
-
-### ✅ Validation Logic
+### ✅ Verification Logic
 - [ ] **Check failure indicators FIRST**, then success indicators
-- [ ] Validation questions are specific: "Is there an 'Invalid email' error?" not "Did it work?"
+- [ ] Verification questions are specific: "Is there an 'Invalid email' error?" not "Did it work?"
 - [ ] Default to failure (`success=False`) when state is unclear
 - [ ] Timeouts are appropriate for slow operations (20-30s for page loads)
 
 ### ✅ Error Handling
-- [ ] All validation failures return `Output(success=False, error="descriptive message")`
+- [ ] **Unrecoverable failures use `raise`** — browser won't open, site unreachable, extraction returned nothing → `raise RuntimeError("...")`
+- [ ] **Expected failures use `Result(success=False)`** — wrong password, item not found, business logic failed → `return Result(success=False, error="...")`
 - [ ] Error messages are specific and actionable
-- [ ] No bare exceptions without error context
+- [ ] No bare `except` blocks that swallow errors silently
 
 ### ✅ Best Practices
-- [ ] Pydantic `Input` and `Output` models defined with type hints
-- [ ] `Output` model includes `success: bool` field
+- [ ] Pydantic `Params` and `Result` models defined with type hints
+- [ ] `Result` model includes `success: bool` field
+- [ ] `Agent` and `Computer` instances created at top of `run()` function
 - [ ] Agent descriptions are specific: "Click the blue 'Submit' button" not "Click submit"
 - [ ] Sensitive data (passwords, tokens) not logged
+- [ ] **`SecureParams` fields do NOT use `default=`** — the platform injects secrets at runtime; use `Field(min_length=1, description="...")` only
+- [ ] **Computer keyboard calls are flat** — use `computer.type()` and `computer.press()` NOT `computer.keyboard.type()` etc. Do NOT use `computer.hotkey()` (broken); use `agent.execute()` for key combinations instead
 
 ### ✅ Python Syntax
 - [ ] **Docstrings use standard Python format** (no `\n` or `\"""` escaping)
@@ -105,10 +128,10 @@ Validate the workflow using the NenAI validation tool before deployment:
    - If validation fails: Fix reported issues and re-validate
 
 3. **Common validation checks:**
-   - Pydantic models are properly defined (`Input` and `Output` classes)
-   - Function signature is correct (`run(input: Input) -> Output`)
-   - Required imports are present (`nen.workflow`, `pydantic`)
-   - Output model includes `success: bool` field
+   - Pydantic models are properly defined (`Params` and `Result` classes)
+   - Function signature is correct (`run(params: Params) -> Result`)
+   - Required imports are present (`from nen import Agent, Computer`, `pydantic`)
+   - Result model includes `success: bool` field
    - Field validations are properly configured
    - No syntax or type errors
 
@@ -167,7 +190,7 @@ Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
 
 1. **Execute the workflow:**
    ```python
-   nen_run(
+   result = nen_run(
        workflowId="[workflow-id-from-step-2]",
        params={
            "PARAM_NAME": "value"
@@ -176,8 +199,8 @@ Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
    ```
 
 2. **Provide run information:**
-   - Share the `messageId` with the user
-   - Share the `liveViewUrl` so user can watch the workflow execution
+   - Share `result.messageId` with the user
+   - Share `result.liveViewUrl` so user can watch the workflow execution
    - Inform user that the workflow is now running
    - Tell user: "The workflow is running! Watch it execute at the link above and let me know how it goes."
 
@@ -271,8 +294,8 @@ After the user observes the workflow execution, iterate based on their feedback:
    - Make changes to workflow.py based on feedback
    - **ALWAYS validate** after making changes: `nen_validate()`
    - Deploy the updated workflow: `nen_upload(workflowId="...", files=[...])`
-   - Run again: `nen_run()`
-   - **Open browser automatically**: `Shell(f'open "{liveViewUrl}"')`
+   - Run again: `result = nen_run(...)`
+   - **Open browser automatically**: `Shell(f'open "{result.liveViewUrl}"')`
    - **🛑 IMMEDIATELY STOP - End your response here and wait for user to observe again**
 
 5. **Repeat until satisfied:**
@@ -288,7 +311,7 @@ User: "Create a workflow to login to example.com"
 AI Actions:
 1. BUILD:
    - Create workflows/my_workflows/example-login/workflow.py
-   - Author Python SDK code with agent(), validate(), etc.
+   - Author Python SDK code with Agent, Computer, agent.execute(), agent.verify(), etc.
    - Check syntax with ReadLints
 
 2. VALIDATE:
@@ -304,10 +327,10 @@ AI Actions:
    - Confirm workflowId received
 
 4. RUN:
-   - Call nen_run(workflowId="...", params={...})
-   - Share messageId and liveViewUrl with user
+   - result = nen_run(workflowId="...", params={...})
+   - Share result.messageId and result.liveViewUrl with user
    - Tell user: "The workflow is running! Watch it execute at the link above and let me know how it goes."
-   - **Open browser automatically**: Shell(f'open "{liveViewUrl}"')
+   - **Open browser automatically**: Shell(f'open "{result.liveViewUrl}"')
    - **🛑 STOP HERE - END RESPONSE IMMEDIATELY**
    - **DO NOT check logs, status, or make any other tool calls after opening browser**
 
@@ -386,7 +409,7 @@ Automates login to the EzyVet trial portal using provided credentials.
 
 ### 1. Platform-Specific Keyboard Commands ❌
 
-**Problem:** Using macOS "command" key in workflows
+**Problem:** Using `computer.hotkey()` or macOS-style key combinations
 
 **Symptom:**
 ```
@@ -394,63 +417,44 @@ ERROR: xdotool key command failed: (symbol) No such key name 'command'
 WorkflowError: Keyboard hotkey failed
 ```
 
-**Solution:** Always use "ctrl" instead of "command"
+**Solution:** Do NOT use `computer.hotkey()` — it is unreliable. Use `agent.execute()` to describe key combinations in natural language.
 
 ```python
-# ❌ WRONG - crashes on Linux
-keyboard.hotkey("command", "a")
+# ❌ WRONG - computer.hotkey() is broken
+computer.hotkey("command", "a")
+computer.hotkey("ctrl", "a")
 
-# ✅ CORRECT - works in Linux containers
-keyboard.hotkey("ctrl", "a")
+# ✅ CORRECT - use agent.execute() for key combinations
+agent.execute("Select all text in the field using keyboard shortcut")
 ```
 
-### 2. Not Clearing Input Fields ❌
-
-**Problem:** Fields contain pre-existing content that isn't cleared
-
-**Symptom:** Concatenated text like "oldvaluetest_email"
-
-**Solution:** Always select all + delete before typing
-
-```python
-# ❌ WRONG - doesn't clear field
-agent("Click email field")
-keyboard.type(input.email)
-
-# ✅ CORRECT - clears field first
-agent("Click email field")
-keyboard.hotkey("ctrl", "a")
-keyboard.press("BackSpace")
-keyboard.type(input.email)
-```
-
-### 3. Validation False Positives ❌
+### 2. Verification False Positives ❌
 
 **Problem:** Workflow reports success when it actually failed
 
-**Symptom:** VLM sees error messages but validation still passes
+**Symptom:** VLM sees error messages but verification still passes
 
 **Solution:** Check failure indicators FIRST, be specific in questions
 
 ```python
 # ❌ WRONG - checks success first (prone to false positives)
-if validate("Is there a dashboard?"):
-    return Output(success=True)
-elif validate("Are we still on login page?"):
-    return Output(success=False)
+if agent.verify("Is there a dashboard?"):
+    return Result(success=True)
+elif agent.verify("Are we still on login page?"):
+    return Result(success=False)
 
 # ✅ CORRECT - checks failure first (more reliable)
-if validate("Are we still on the login page?"):
-    return Output(success=False, error="Login failed")
-elif validate("Is there an error message visible?"):
-    return Output(success=False, error="Error displayed")
-elif validate("Is dashboard visible?"):
-    return Output(success=True)
+if agent.verify("Are we still on the login page?"):
+    return Result(success=False, error="Login failed")
+elif agent.verify("Is there an error message visible?"):
+    return Result(success=False, error="Error displayed")
+elif agent.verify("Is dashboard visible?"):
+    return Result(success=True)
 else:
-    return Output(success=False, error="Unable to determine state")
+    return Result(success=False, error="Unable to determine state")
 ```
 
-### 4. Vague Validation Questions ❌
+### 4. Vague Verification Questions ❌
 
 **Problem:** Generic questions lead to unreliable results
 
@@ -458,13 +462,13 @@ else:
 
 ```python
 # ❌ VAGUE - prone to misinterpretation
-validate("Is the page loaded?")
-validate("Did it work?")
+agent.verify("Is the page loaded?")
+agent.verify("Did it work?")
 
 # ✅ SPECIFIC - clear and unambiguous
-validate("Is the email input field visible with a 'Send login link' button?")
-validate("Are we still on login.provetcloud.com URL?")
-validate("Is there an 'Invalid email' error message visible?")
+agent.verify("Is the email input field visible with a 'Send login link' button?")
+agent.verify("Are we still on login.provetcloud.com URL?")
+agent.verify("Is there an 'Invalid email' error message visible?")
 ```
 
 ### 5. Insufficient Timeouts ❌
@@ -475,11 +479,11 @@ validate("Is there an 'Invalid email' error message visible?")
 
 ```python
 # ❌ WRONG - default timeout may be too short
-if not validate("Is dashboard loaded?"):
+if not agent.verify("Is dashboard loaded?"):
     pass
 
 # ✅ CORRECT - increased timeout for slow pages
-if not validate("Is dashboard loaded?", timeout=30):
+if not agent.verify("Is dashboard loaded?", timeout=30):
     pass
 ```
 

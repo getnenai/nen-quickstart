@@ -20,24 +20,24 @@ alwaysApply: false
 
 ```python
 # ❌ WRONG - macOS only (will crash with xdotool error)
-keyboard.hotkey("command", "a")
-keyboard.hotkey("command", "c")
+computer.keyboard.hotkey("command", "a")
+computer.keyboard.hotkey("command", "c")
 
 # ✅ CORRECT - Linux/Windows (works in workflow container)
-keyboard.hotkey("ctrl", "a")
-keyboard.hotkey("ctrl", "c")
+computer.keyboard.hotkey("ctrl", "a")
+computer.keyboard.hotkey("ctrl", "c")
 ```
 
 **Common key mappings:**
-- Select All: `keyboard.hotkey("ctrl", "a")` (not "command")
-- Copy: `keyboard.hotkey("ctrl", "c")` (not "command")
-- Paste: `keyboard.hotkey("ctrl", "v")` (not "command")
-- Cut: `keyboard.hotkey("ctrl", "x")` (not "command")
-- Save: `keyboard.hotkey("ctrl", "s")` (not "command")
+- Select All: `computer.keyboard.hotkey("ctrl", "a")` (not "command")
+- Copy: `computer.keyboard.hotkey("ctrl", "c")` (not "command")
+- Paste: `computer.keyboard.hotkey("ctrl", "v")` (not "command")
+- Cut: `computer.keyboard.hotkey("ctrl", "x")` (not "command")
+- Save: `computer.keyboard.hotkey("ctrl", "s")` (not "command")
 
 ### xdotool Key Names
 
-Valid key names for `keyboard.press()` and `keyboard.hotkey()`:
+Valid key names for `computer.keyboard.press()` and `computer.keyboard.hotkey()`:
 
 **Modifier keys:**
 - `ctrl` - Control key (Linux/Windows)
@@ -68,24 +68,27 @@ Valid key names for `keyboard.press()` and `keyboard.hotkey()`:
 Always clear fields before typing new content:
 
 ```python
-from nen.workflow import agent, keyboard
+from nen import Agent, Computer
+
+agent = Agent()
+computer = Computer()
 
 # Method 1: Select all + delete
-agent("Click on the email field")
-keyboard.hotkey("ctrl", "a")  # Select all text
-keyboard.press("BackSpace")    # Delete selected text
-keyboard.type(input.email)     # Type new content
+agent.execute("Click on the email field")
+computer.keyboard.hotkey("ctrl", "a")  # Select all text
+computer.keyboard.press("BackSpace")   # Delete selected text
+computer.keyboard.type(params.email)   # Type new content
 
 # Method 2: Triple-click to select all + delete
-agent("Triple-click the text field to select all")
-keyboard.press("BackSpace")
-keyboard.type(input.value)
+agent.execute("Triple-click the text field to select all")
+computer.keyboard.press("BackSpace")
+computer.keyboard.type(params.value)
 
 # Method 3: For known content length, use multiple backspaces
-agent("Click at the end of the text field")
+agent.execute("Click at the end of the text field")
 for _ in range(50):  # Exceed expected length
-    keyboard.press("BackSpace")
-keyboard.type(input.text)
+    computer.keyboard.press("BackSpace")
+computer.keyboard.type(params.text)
 ```
 
 **Why clearing is important:**
@@ -98,49 +101,51 @@ keyboard.type(input.text)
 **Check failure indicators BEFORE success indicators:**
 
 ```python
-from nen.workflow import validate
+from nen import Agent
+
+agent = Agent()
 
 # ❌ BAD - checks success first (prone to false positives)
-if validate("Is there a dashboard?"):
-    return Output(success=True)
-elif validate("Are we still on login page?"):
-    return Output(success=False, error="Still on login page")
+if agent.verify("Is there a dashboard?"):
+    return Result(success=True)
+elif agent.verify("Are we still on login page?"):
+    return Result(success=False, error="Still on login page")
 
 # ✅ GOOD - checks failure first (more reliable)
-if validate("Are we still on the login page?"):
-    return Output(success=False, error="Login failed")
-elif validate("Is there an error message visible?"):
-    return Output(success=False, error="Error displayed")
-elif validate("Did we navigate to a dashboard or different URL?"):
-    return Output(success=True, message="Login successful")
+if agent.verify("Are we still on the login page?"):
+    return Result(success=False, error="Login failed")
+elif agent.verify("Is there an error message visible?"):
+    return Result(success=False, error="Error displayed")
+elif agent.verify("Did we navigate to a dashboard or different URL?"):
+    return Result(success=True, message="Login successful")
 else:
-    return Output(success=False, error="Unable to determine state")
+    return Result(success=False, error="Unable to determine state")
 ```
 
-**Be specific in validation questions:**
+**Be specific in verification questions:**
 
 ```python
 # ❌ VAGUE - prone to misinterpretation
-validate("Is the page loaded?")
-validate("Did it work?")
+agent.verify("Is the page loaded?")
+agent.verify("Did it work?")
 
 # ✅ SPECIFIC - clear and unambiguous
-validate("Is the email input field visible with a 'Send login link' button?")
-validate("Are we still on login.provetcloud.com URL?")
-validate("Is there an 'Invalid email' error message visible?")
+agent.verify("Is the email input field visible with a 'Send login link' button?")
+agent.verify("Are we still on login.provetcloud.com URL?")
+agent.verify("Is there an 'Invalid email' error message visible?")
 ```
 
 **Always default to failure when state is unclear:**
 
 ```python
 # Conservative approach - if we can't confirm success, assume failure
-if validate("Success indicator 1"):
-    return Output(success=True)
-elif validate("Success indicator 2"):
-    return Output(success=True)
+if agent.verify("Success indicator 1"):
+    return Result(success=True)
+elif agent.verify("Success indicator 2"):
+    return Result(success=True)
 else:
     # Default to failure (conservative)
-    return Output(success=False, error="Unable to verify success")
+    return Result(success=False, error="Unable to verify success")
 ```
 
 ### Keyboard Typing with Delays
@@ -148,35 +153,40 @@ else:
 For sensitive fields (passwords, forms with validation), add delays:
 
 ```python
-from nen.workflow import keyboard
+from nen import Computer
+
+computer = Computer()
 
 # Standard typing (fast)
-keyboard.type("username@example.com")
+computer.keyboard.type("username@example.com")
 
 # Slower typing for better reliability (10ms between chars)
-keyboard.type("password123", interval=0.01)
+computer.keyboard.type("password123", interval=0.01)
 
 # Very slow for temperamental forms (50ms between chars)
-keyboard.type("sensitive-data", interval=0.05)
+computer.keyboard.type("sensitive-data", interval=0.05)
 ```
 
 ### Mouse Coordinates
 
-Direct mouse control when VLM-based agent() is unreliable:
+Direct mouse control when VLM-based agent.execute() is unreliable:
 
 ```python
-from nen.workflow import mouse, validate
+from nen import Agent, Computer
+
+agent = Agent()
+computer = Computer()
 
 # Wait for element to be visible first
-if not validate("Is the submit button visible?"):
-    return Output(success=False, error="Button not found")
+if not agent.verify("Is the submit button visible?"):
+    return Result(success=False, error="Button not found")
 
 # Click at specific coordinates
-mouse.click_at(500, 400)
+computer.mouse.click_at(500, 400)
 
 # Move and click
-mouse.move(300, 200)
-mouse.click()
+computer.mouse.move(300, 200)
+computer.mouse.click_at(300, 200)
 ```
 
 **When to use direct mouse control:**
@@ -211,7 +221,7 @@ WorkflowError: Keyboard hotkey failed
 
 **Problem:** Workflow reports success when it actually failed
 
-**Symptom:** VLM sees error messages but validation still passes
+**Symptom:** VLM sees error messages but verification still passes
 
 **Solution:** Check failure indicators first, be specific in questions
 
@@ -219,21 +229,21 @@ WorkflowError: Keyboard hotkey failed
 
 **Problem:** Operations take longer than expected
 
-**Symptom:** Validation returns false before element appears
+**Symptom:** Verification returns false before element appears
 
 **Solution:** Increase timeout for slow operations:
 
 ```python
 # Default timeout (10 seconds)
-if not validate("Is page loaded?"):
+if not agent.verify("Is page loaded?"):
     pass
 
 # Increased timeout for slow pages (30 seconds)
-if not validate("Is dashboard visible?", timeout=30):
+if not agent.verify("Is dashboard visible?", timeout=30):
     pass
 
-# Custom timeouts for agent operations
-agent("Fill out the form", max_iterations=20)  # More time/retries
+# Custom max_iterations for agent operations
+agent.execute("Fill out the form", max_iterations=20)  # More time/retries
 ```
 
 ### 5. Browser State Assumptions
@@ -246,15 +256,15 @@ agent("Fill out the form", max_iterations=20)  # More time/retries
 
 ```python
 # Don't assume logged out
-agent("Click the Chromium browser icon in the taskbar")
-agent("Navigate to https://example.com")
+agent.execute("Click the Chromium browser icon in the taskbar")
+agent.execute("Navigate to https://example.com")
 
 # Check actual state first
-if validate("Are we already logged in (dashboard visible)?"):
-    return Output(success=True, message="Already logged in")
+if agent.verify("Are we already logged in (dashboard visible)?"):
+    return Result(success=True, message="Already logged in")
 
 # Then proceed with login if needed
-agent("Click login button")
+agent.execute("Click login button")
 # ...
 ```
 
@@ -275,9 +285,9 @@ When logs show VLM reasoning, look for:
    "I will click on the email input field"
    ```
 
-3. **Validation results:**
+3. **Verification results:**
    ```
-   validate("Are we still on login page?")
+   agent.verify("Are we still on login page?")
    Result: is_valid=true
    Match reason: "The page shows login form with logo..."
    ```
@@ -300,32 +310,38 @@ When logs show VLM reasoning, look for:
 
 ## SDK Function Reference (Quick)
 
-### agent(description, max_iterations=10)
+### Agent
+
+```python
+from nen import Agent
+agent = Agent()
+```
+
+#### agent.execute(description, max_iterations=10)
 Natural language action using vision language model.
 
 ```python
-agent("Click the blue submit button")
-agent("Fill in the entire registration form", max_iterations=20)
-agent("Navigate to the settings page")
+agent.execute("Click the blue submit button")
+agent.execute("Fill in the entire registration form", max_iterations=20)
+agent.execute("Navigate to the settings page")
 ```
 
-### validate(question, timeout=10)
+#### agent.verify(question, timeout=10)
 Check UI state with yes/no question. Returns bool.
 
 ```python
-if validate("Is the login form visible?"):
-    # Proceed with login
+if agent.verify("Is the login form visible?"):
     pass
 
-if not validate("Is dashboard loaded?", timeout=30):
-    return Output(success=False, error="Dashboard didn't load")
+if not agent.verify("Is dashboard loaded?", timeout=30):
+    return Result(success=False, error="Dashboard didn't load")
 ```
 
-### extract(query, schema)
+#### agent.extract(query, schema)
 Extract structured data using JSON schema. Returns dict/list.
 
 ```python
-data = extract(
+data = agent.extract(
     "What is the account balance?",
     schema={
         "type": "object",
@@ -339,53 +355,61 @@ data = extract(
 # Returns: {"balance": 1250.50, "currency": "USD"}
 ```
 
-### keyboard.type(text, interval=0.0)
+### Computer
+
+```python
+from nen import Computer
+computer = Computer()
+```
+
+#### computer.keyboard.type(text, interval=0.02)
 Type text with optional delay between characters.
 
 ```python
-keyboard.type("username@example.com")
-keyboard.type("password", interval=0.01)  # 10ms delay per char
+computer.keyboard.type("username@example.com")
+computer.keyboard.type("password", interval=0.01)  # 10ms delay per char
 ```
 
-### keyboard.press(key)
+#### computer.keyboard.press(key)
 Press a single key.
 
 ```python
-keyboard.press("Return")
-keyboard.press("BackSpace")
-keyboard.press("Tab")
+computer.keyboard.press("Return")
+computer.keyboard.press("BackSpace")
+computer.keyboard.press("Tab")
 ```
 
-### keyboard.hotkey(*keys)
+#### computer.keyboard.hotkey(*keys)
 Press multiple keys simultaneously (modifier combos).
 
 ```python
-keyboard.hotkey("ctrl", "a")    # Select all
-keyboard.hotkey("ctrl", "c")    # Copy
-keyboard.hotkey("ctrl", "v")    # Paste
-keyboard.hotkey("shift", "Tab") # Reverse tab
+computer.keyboard.hotkey("ctrl", "a")    # Select all
+computer.keyboard.hotkey("ctrl", "c")    # Copy
+computer.keyboard.hotkey("ctrl", "v")    # Paste
+computer.keyboard.hotkey("shift", "Tab") # Reverse tab
 ```
 
-### mouse.click()
-Click at current mouse position.
-
-```python
-mouse.click()
-```
-
-### mouse.click_at(x, y)
+#### computer.mouse.click_at(x, y, button="left")
 Click at specific coordinates.
 
 ```python
-mouse.click_at(500, 300)
+computer.mouse.click_at(500, 300)
+computer.mouse.click_at(500, 300, button="right")
 ```
 
-### mouse.move(x, y)
+#### computer.mouse.move(x, y)
 Move mouse to coordinates.
 
 ```python
-mouse.move(400, 200)
-mouse.click()  # Then click
+computer.mouse.move(400, 200)
+```
+
+#### computer.mouse.scroll(direction, amount, x, y)
+Scroll the mouse wheel.
+
+```python
+computer.mouse.scroll("down", 3)
+computer.mouse.scroll("up", 5)
 ```
 
 ## For Complete Details

@@ -1,0 +1,40 @@
+---
+description: All sensitive data (passwords, API keys, tokens, etc.) must use SecureParams with Secure[str] in NenAI workflows
+globs: workflows/**/*.py
+alwaysApply: false
+---
+
+# Secure Parameters in NenAI Workflows
+
+All sensitive values **must** use `SecureParams` with `Secure[str]` — never put them in `Params`.
+
+This includes: passwords, API keys, tokens, secrets, credentials, private URLs, and any value the user shouldn't see in logs.
+
+## ✅ CORRECT
+
+```python
+from nen import Agent, Computer, Secure
+from pydantic import BaseModel, Field
+
+class SecureParams(BaseModel):
+    password: Secure[str] = Field(min_length=1, description="Login password")
+    api_key: Secure[str] = Field(min_length=1, description="API key for the service")
+
+def run(params: Params, secure_params: SecureParams) -> Result:
+    computer.type(secure_params.password)
+```
+
+## ❌ WRONG — never put sensitive values in Params
+
+```python
+class Params(BaseModel):
+    password: str = Field(default="hunter2")  # ❌ exposed in logs
+    api_key: str = Field(default="sk-abc123")  # ❌ exposed in logs
+```
+
+## Rules
+
+- `SecureParams` fields must **never** use `default=` — the platform injects secrets at runtime
+- Use `Field(min_length=1, description="...")` only — no defaults
+- Access via `secure_params.<field>` inside `run()`
+- Never log, print, or embed secure values in strings

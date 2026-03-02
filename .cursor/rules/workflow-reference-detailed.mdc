@@ -5,7 +5,7 @@ alwaysApply: false
 
 # CUP Workflow Quick Reference
 
-Quick reference for `nen.workflow` SDK primitives and common patterns.
+Quick reference for `nen` SDK (`Agent`, `Computer`, `Secure`) and common patterns.
 
 ## Table of Contents
 
@@ -28,90 +28,130 @@ Workflow: [Name]
 
 Description of what this workflow does.
 """
-from nen.workflow import agent, validate, extract, keyboard, mouse
+from nen import Agent, Computer
+from pydantic import BaseModel, Field
 
 
-def handler(payload: dict) -> dict:
+class Params(BaseModel):
+    """Input parameters — validated before run() is called."""
+    website_url: str = Field(default="https://example.com", min_length=1)
+
+
+class Result(BaseModel):
+    """Output schema — validated before returning to caller."""
+    success: bool
+    error: str | None = None
+
+
+def run(params: Params) -> Result:
     """
     Main workflow entry point.
-    
+
     Args:
-        payload: Input parameters
-    
+        params: Validated Pydantic input parameters
+
     Returns:
-        dict with at minimum: {"success": bool}
+        Result with at minimum: success bool
     """
-    # Get inputs
-    var = payload.get("VAR_NAME", "default")
-    
+    agent = Agent()
+    computer = Computer()
+
     # Workflow logic
-    agent("Do something")
-    
-    # Return results
-    return {"success": True}
+    agent.execute("Do something")
+
+    return Result(success=True)
 ```
 
-### Payload Access
+### Template with Secrets
 
 ```python
-# Optional with default
-url = payload.get("WEBSITE_URL", "https://example.com")
+"""
+Workflow: [Name]
 
-# Required (raises KeyError if missing)
-name = payload["PATIENT_NAME"]
+Description of what this workflow does.
+"""
+from nen import Agent, Computer, Secure
+from pydantic import BaseModel, Field
 
-# With validation
-if "REQUIRED_VAR" not in payload:
-    return {"success": False, "error": "REQUIRED_VAR missing"}
+
+class Params(BaseModel):
+    login_url: str = Field(min_length=1)
+    username: str = Field(min_length=1)
+
+
+class SecureParams(BaseModel):
+    password: Secure[str] = Field(min_length=1)
+
+
+class Result(BaseModel):
+    success: bool
+    error: str | None = None
+
+
+def run(params: Params, secure_params: SecureParams) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    # Use params.username and secure_params.password
+    return Result(success=True)
 ```
 
-### Return Structure
+### Params Access
+
+```python
+# Access as typed attributes
+url = params.website_url
+count = params.max_items
+name = params.patient_name
+
+# Pydantic validation happens before run() is called
+# No need to check for missing or invalid params
+```
+
+### Result Structure
 
 ```python
 # Success
-return {
-    "success": True,
-    "data": result,
-    "message": "Optional success message"
-}
+return Result(success=True, data=result, message="Completed successfully")
 
 # Failure
-return {
-    "success": False,
-    "error": "Error description",
-    "details": {"step": "authentication", "reason": "Invalid credentials"}
-}
+return Result(success=False, error="Error description")
+
+# Using model_construct for extracted data
+data = agent.extract("Get article info", Result.model_json_schema())
+return Result.model_construct(**data)
 ```
 
 ---
 
 ## SDK Primitives
 
-### agent()
+### Agent
+
+```python
+from nen import Agent
+
+agent = Agent()  # Create once in run()
+```
+
+#### agent.execute()
 
 Execute natural language action using VLM.
 
 ```python
-from nen.workflow import agent
-
 # Basic usage
-agent("Click the submit button")
+agent.execute("Click the submit button")
 
 # With max iterations
-agent("Fill in the entire form", max_iterations=20)
+agent.execute("Fill in the entire form", max_iterations=20)
 
 # With variable
-url = payload.get("URL")
-agent(f"Navigate to {url}")
+agent.execute(f"Navigate to {params.url}")
 ```
 
 **Parameters:**
 - `description` (str): Natural language description
-- `max_iterations` (int): Max LLM turns (default: 10)
-
-**Returns:** `dict` with `success`, `messages`, optional `error`
-
-**Raises:** `WorkflowError` if action fails
+- `max_iterations` (int): Max VLM turns (default: 10)
 
 **When to use:**
 - Element position unknown
@@ -120,27 +160,22 @@ agent(f"Navigate to {url}")
 
 ---
 
-### validate()
+#### agent.verify()
 
 Check UI state with yes/no question.
 
 ```python
-from nen.workflow import validate
-
 # Basic check
-if validate("Is the login form visible?"):
-    # Proceed with login
-    pass
+if agent.verify("Is the login form visible?"):
+    pass  # Proceed with login
 
 # With timeout (waits up to timeout for condition)
-if validate("Is the dashboard loaded?", timeout=30):
-    # Dashboard is ready
-    pass
+if agent.verify("Is the dashboard loaded?", timeout=30):
+    pass  # Dashboard is ready
 
 # Negative check
-if not validate("Is there an error message?"):
-    # No error, continue
-    pass
+if not agent.verify("Is there an error message?"):
+    pass  # No error, continue
 ```
 
 **Parameters:**
@@ -148,8 +183,6 @@ if not validate("Is there an error message?"):
 - `timeout` (int): Max seconds to wait (default: 10)
 
 **Returns:** `bool` - True if condition met, False otherwise
-
-**Raises:** `RPCError` if communication fails
 
 **When to use:**
 - After navigation (page loaded?)
@@ -159,15 +192,13 @@ if not validate("Is there an error message?"):
 
 ---
 
-### extract()
+#### agent.extract()
 
 Extract structured data using JSON schema.
 
 ```python
-from nen.workflow import extract
-
 # Single value
-result = extract(
+result = agent.extract(
     "What is the account balance?",
     schema={
         "type": "object",
@@ -178,7 +209,7 @@ result = extract(
 balance = result["balance"]
 
 # List of items
-items = extract(
+items = agent.extract(
     "Extract all product names and prices",
     schema={
         "type": "array",
@@ -191,6 +222,10 @@ items = extract(
         }
     }
 )
+
+# Using Result model schema
+data = agent.extract("Get article title and author", Result.model_json_schema())
+return Result.model_construct(**data)
 ```
 
 **Parameters:**
@@ -199,8 +234,6 @@ items = extract(
 
 **Returns:** `dict` or `list` matching schema
 
-**Raises:** `WorkflowError` if extraction fails
-
 **When to use:**
 - Reading table data
 - Extracting form values
@@ -208,77 +241,70 @@ items = extract(
 
 ---
 
-### mouse
-
-Direct mouse control (no VLM).
+### Computer
 
 ```python
-from nen.workflow import mouse
+from nen import Computer
 
-# Click at coordinates
-mouse.click_at(500, 300)
-
-# Right click
-mouse.click_at(500, 300, button="right")
-
-# Move cursor
-mouse.move(400, 200)
+computer = Computer()  # Create once in run()
 ```
 
-**Methods:**
-- `click_at(x, y, button="left")` - Click at coordinates
-  - `button`: "left", "right", or "middle"
-- `move(x, y)` - Move cursor
+#### computer.keyboard
 
-**Coordinates:** Origin (0,0) at top-left, X increases right, Y increases down
+```python
+# Type text
+computer.keyboard.type("hello@example.com")
+computer.keyboard.type("slow typing", interval=0.1)
 
-**When to use:**
-- Known stable coordinates
-- Performance critical
-- After agent() finds element position
+# Press single key
+computer.keyboard.press("Return")
+computer.keyboard.press("Tab")
+computer.keyboard.press("Escape")
+computer.keyboard.press("BackSpace")
+
+# Keyboard shortcuts (Linux only — use ctrl, NOT command)
+computer.keyboard.hotkey("ctrl", "c")           # Copy
+computer.keyboard.hotkey("ctrl", "v")           # Paste
+computer.keyboard.hotkey("ctrl", "a")           # Select all
+computer.keyboard.hotkey("ctrl", "shift", "s")  # Save As
+```
+
+**keyboard.type() parameters:**
+- `text` (str): Text to type
+- `interval` (float): Seconds between keystrokes (default: 0.02)
+
+**Common Keys:**
+- Enter: `"Return"` or `"Enter"`
+- Arrows: `"Up"`, `"Down"`, `"Left"`, `"Right"`
+- Function: `"F1"` through `"F12"`
+- Modifiers: `"ctrl"`, `"alt"`, `"shift"`, `"super"`
+- Navigation: `"Home"`, `"End"`, `"Page_Up"`, `"Page_Down"`
 
 ---
 
-### keyboard
-
-Direct keyboard control (no VLM).
+#### computer.mouse
 
 ```python
-from nen.workflow import keyboard
+# Click at coordinates
+computer.mouse.click_at(500, 300)
 
-# Type text
-keyboard.type("hello@example.com")
+# Right click
+computer.mouse.click_at(500, 300, button="right")
 
-# Type with custom interval
-keyboard.type("slow typing", interval=0.1)
+# Move cursor
+computer.mouse.move(400, 200)
 
-# Press single key
-keyboard.press("Return")
-keyboard.press("Tab")
-keyboard.press("Escape")
-
-# Keyboard shortcuts
-keyboard.hotkey("ctrl", "c")  # Copy
-keyboard.hotkey("ctrl", "v")  # Paste
-keyboard.hotkey("ctrl", "shift", "s")  # Save As
+# Scroll
+computer.mouse.scroll("down", 3)
+computer.mouse.scroll("up", 5)
+computer.mouse.scroll("down", 3, x=400, y=300)  # at position
 ```
 
-**Methods:**
-- `type(text, interval=0.02)` - Type text character by character
-- `press(key)` - Press single key
-- `hotkey(*keys)` - Press key combination
+**mouse.click_at() parameters:**
+- `x` (int), `y` (int): Screen coordinates
+- `button` (str): `"left"`, `"right"`, or `"middle"` (default: `"left"`)
 
-**Common Keys:**
-- Enter: "Return" or "Enter"
-- Arrows: "Up", "Down", "Left", "Right"
-- Function: "F1" through "F12"
-- Modifiers: "ctrl", "alt", "shift", "super"
-- Navigation: "Home", "End", "Page_Up", "Page_Down"
-
-**When to use:**
-- Typing text (faster than agent)
-- Keyboard shortcuts
-- Navigation keys
+**Coordinates:** Origin (0,0) at top-left, X increases right, Y increases down
 
 ---
 
@@ -287,59 +313,64 @@ keyboard.hotkey("ctrl", "shift", "s")  # Save As
 ### Browser Automation
 
 ```python
-def handler(payload: dict) -> dict:
-    url = payload.get("URL", "https://example.com")
-    
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+
     # Open and navigate
-    agent("Click the Chromium browser icon in the taskbar")
-    if not validate("Is the Chromium browser open?", timeout=10):
-        return {"success": False, "error": "Failed to open browser"}
-    
-    agent(f"Navigate to {url}")
-    if not validate(f"Is {url} loaded?", timeout=20):
-        return {"success": False, "error": "Failed to load page"}
-    
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
+
+    agent.execute(f"Navigate to {params.url}")
+    if not agent.verify("Is the page loaded?", timeout=20):
+        return Result(success=False, error="Failed to load page")
+
     # Continue workflow...
-    return {"success": True}
+    return Result(success=True)
 ```
 
 ### Form Filling
 
 ```python
-def handler(payload: dict) -> dict:
-    # Navigate to form
-    agent("Navigate to contact form")
-    if not validate("Is the form visible?"):
-        return {"success": False, "error": "Form not found"}
-    
-    # Fill fields
-    agent("Click the name field")
-    keyboard.type(payload.get("NAME"))
-    
-    agent("Click the email field")
-    keyboard.type(payload.get("EMAIL"))
-    
-    # Submit
-    agent("Click submit button")
-    
-    # Verify
-    if validate("Is there a success message?", timeout=10):
-        return {"success": True}
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    agent.execute("Navigate to contact form")
+    if not agent.verify("Is the form visible?"):
+        return Result(success=False, error="Form not found")
+
+    # Fill and clear fields
+    agent.execute("Click the name field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(params.name)
+
+    agent.execute("Click the email field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(params.email)
+
+    agent.execute("Click submit button")
+
+    if agent.verify("Is there a success message?", timeout=10):
+        return Result(success=True)
     else:
-        return {"success": False, "error": "Submission failed"}
+        return Result(success=False, error="Submission failed")
 ```
 
 ### Data Extraction
 
 ```python
-def handler(payload: dict) -> dict:
-    # Navigate to data
-    agent("Navigate to data page")
-    if not validate("Is the data table visible?"):
-        return {"success": False, "error": "Table not found"}
-    
-    # Extract
-    data = extract(
+def run(params: Params) -> Result:
+    agent = Agent()
+
+    agent.execute("Navigate to data page")
+    if not agent.verify("Is the data table visible?"):
+        return Result(success=False, error="Table not found")
+
+    data = agent.extract(
         "Extract all rows from the table",
         schema={
             "type": "array",
@@ -353,39 +384,39 @@ def handler(payload: dict) -> dict:
             }
         }
     )
-    
-    return {"success": True, "data": data}
+
+    return Result(success=True, data=data)
 ```
 
 ### Login Workflow
 
 ```python
-def handler(payload: dict) -> dict:
-    username = payload.get("USERNAME")
-    password = payload.get("PASSWORD")
-    
-    # Navigate
-    agent("Navigate to login page")
-    if not validate("Is login form visible?"):
-        return {"success": False, "error": "Login page not found"}
-    
-    # Enter credentials
-    agent("Click username field")
-    keyboard.type(username)
-    
-    agent("Click password field")
-    keyboard.type(password, interval=0.01)  # Faster typing for passwords
-    
-    # Submit
-    agent("Click login button")
-    
-    # Verify
-    if validate("Is dashboard visible?", timeout=20):
-        return {"success": True}
-    elif validate("Is there an error message?"):
-        return {"success": False, "error": "Invalid credentials"}
+def run(params: Params, secure_params: SecureParams) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    agent.execute(f"Navigate to {params.login_url}")
+    if not agent.verify("Is login form visible?"):
+        return Result(success=False, error="Login page not found")
+
+    agent.execute("Click username field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(params.username)
+
+    agent.execute("Click password field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(secure_params.password, interval=0.01)
+
+    computer.keyboard.press("Return")
+
+    if agent.verify("Is dashboard visible?", timeout=20):
+        return Result(success=True)
+    elif agent.verify("Is there an error message?"):
+        return Result(success=False, error="Invalid credentials")
     else:
-        return {"success": False, "error": "Login result unclear"}
+        return Result(success=False, error="Login result unclear")
 ```
 
 ### Multi-Step with Checkpoints
@@ -393,26 +424,27 @@ def handler(payload: dict) -> dict:
 ```python
 import logging
 
-def handler(payload: dict) -> dict:
-    # Step 1: Authenticate
-    logging.info("Step 1: Authenticating")
-    if not authenticate(payload):
-        return {"success": False, "error": "Authentication failed"}
-    
-    # Step 2: Navigate
-    logging.info("Step 2: Navigating")
-    if not navigate_to_target():
-        return {"success": False, "error": "Navigation failed"}
-    
-    # Step 3: Extract
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    logging.info("Step 1: Opening browser")
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
+
+    logging.info("Step 2: Authenticating")
+    if not authenticate(agent, computer, params):
+        return Result(success=False, error="Authentication failed")
+
     logging.info("Step 3: Extracting data")
     try:
-        data = extract_data()
-    except WorkflowError as e:
-        return {"success": False, "error": f"Extraction failed: {e}"}
-    
+        data = extract_data(agent)
+    except Exception as e:
+        return Result(success=False, error=f"Extraction failed: {e}")
+
     logging.info("Workflow completed")
-    return {"success": True, "data": data}
+    return Result(success=True, data=data)
 ```
 
 ---
@@ -422,13 +454,11 @@ def handler(payload: dict) -> dict:
 ### Basic Try/Except
 
 ```python
-from nen.workflow import agent, WorkflowError
-
 try:
-    agent("Click submit")
-    return {"success": True}
-except WorkflowError as e:
-    return {"success": False, "error": str(e)}
+    agent.execute("Click submit")
+    return Result(success=True)
+except Exception as e:
+    return Result(success=False, error=str(e))
 ```
 
 ### Retry Pattern
@@ -439,67 +469,58 @@ import time
 max_retries = 3
 for attempt in range(max_retries):
     try:
-        agent("Click submit")
-        return {"success": True}
-    except WorkflowError as e:
+        agent.execute("Click submit")
+        return Result(success=True)
+    except Exception as e:
         if attempt < max_retries - 1:
             time.sleep(2)
             continue
-        return {"success": False, "error": f"Failed after {max_retries} attempts: {e}"}
+        return Result(success=False, error=f"Failed after {max_retries} attempts: {e}")
 ```
 
 ### Partial Success
 
 ```python
-def handler(payload: dict) -> dict:
+def run(params: Params) -> Result:
+    agent = Agent()
     results = []
     errors = []
-    
-    items = payload.get("ITEMS", [])
-    
-    for item in items:
+
+    for item in params.items:
         try:
-            result = process_item(item)
-            results.append({"item": item, "result": result})
-        except WorkflowError as e:
+            data = process_item(agent, item)
+            results.append({"item": item, "data": data})
+        except Exception as e:
             errors.append({"item": item, "error": str(e)})
-    
-    return {
-        "success": len(results) > 0,
-        "results": results,
-        "errors": errors,
-        "summary": {
-            "total": len(items),
-            "succeeded": len(results),
-            "failed": len(errors)
-        }
-    }
+
+    return Result(
+        success=len(results) > 0,
+        results=results,
+        errors=errors
+    )
 ```
 
 ### Checkpoint Pattern
 
 ```python
-def handler(payload: dict) -> dict:
+def run(params: Params) -> Result:
+    agent = Agent()
     checkpoint = "start"
-    
+
     try:
         checkpoint = "authentication"
-        authenticate()
-        
+        authenticate(agent)
+
         checkpoint = "navigation"
-        navigate()
-        
+        navigate(agent)
+
         checkpoint = "extraction"
-        data = extract_data()
-        
-        return {"success": True, "data": data}
-        
-    except WorkflowError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "failed_at": checkpoint
-        }
+        data = extract_data(agent)
+
+        return Result(success=True, data=data)
+
+    except Exception as e:
+        return Result(success=False, error=str(e), failed_at=checkpoint)
 ```
 
 ---
@@ -509,14 +530,15 @@ def handler(payload: dict) -> dict:
 ### Simple Logging (print)
 
 ```python
-def handler(payload: dict) -> dict:
+def run(params: Params) -> Result:
     print("Starting workflow")
-    print(f"Processing: {payload.get('NAME')}")
-    
-    agent("Do something")
+    print(f"Processing: {params.patient_name}")
+
+    agent = Agent()
+    agent.execute("Do something")
     print("Action completed")
-    
-    return {"success": True}
+
+    return Result(success=True)
 ```
 
 Output:
@@ -531,38 +553,22 @@ Output:
 ```python
 import logging
 
-def handler(payload: dict) -> dict:
+def run(params: Params) -> Result:
     logging.info("Workflow started", extra={
         "workflow": "example",
         "version": "1.0.0",
-        "patient": payload.get("PATIENT_NAME")
+        "patient": params.patient_name
     })
-    
-    result = extract("Get data", schema=schema)
-    
+
+    agent = Agent()
+    data = agent.extract("Get data", schema=schema)
+
     logging.info("Data extracted", extra={
-        "record_count": len(result),
-        "result": result
+        "record_count": len(data),
+        "result": data
     })
-    
-    return {"success": True, "data": result}
-```
 
-Output:
-```json
-{"timestamp":"...","level":"INFO","message":"Workflow started","workflow":"example","version":"1.0.0","patient":"John Doe"}
-{"timestamp":"...","level":"INFO","message":"Data extracted","record_count":5,"result":[...]}
-```
-
-### Log Levels
-
-```python
-import logging
-
-logging.debug("Debug information")
-logging.info("General information")
-logging.warning("Warning message")
-logging.error("Error occurred")
+    return Result(success=True, data=data)
 ```
 
 ### Redacting Sensitive Data
@@ -570,20 +576,20 @@ logging.error("Error occurred")
 ```python
 import logging
 
-def handler(payload: dict) -> dict:
-    password = payload.get("PASSWORD")
-    
+def run(params: Params, secure_params: SecureParams) -> Result:
+    computer = Computer()
+
     # BAD - logs password
-    print(f"Password: {password}")  # ❌
-    
+    # print(f"Password: {secure_params.password}")  # ❌
+
     # GOOD - redact in logs
     logging.info("Authenticating", extra={
-        "username": payload.get("USERNAME"),
+        "username": params.username,
         "password": "***REDACTED***"  # ✅
     })
-    
+
     # Use password without logging it
-    keyboard.type(password)
+    computer.keyboard.type(secure_params.password)
 ```
 
 ---
@@ -596,36 +602,28 @@ def handler(payload: dict) -> dict:
 # String
 schema = {
     "type": "object",
-    "properties": {
-        "email": {"type": "string"}
-    },
+    "properties": {"email": {"type": "string"}},
     "required": ["email"]
 }
 
 # Number
 schema = {
     "type": "object",
-    "properties": {
-        "balance": {"type": "number"}
-    },
+    "properties": {"balance": {"type": "number"}},
     "required": ["balance"]
 }
 
 # Integer
 schema = {
     "type": "object",
-    "properties": {
-        "count": {"type": "integer"}
-    },
+    "properties": {"count": {"type": "integer"}},
     "required": ["count"]
 }
 
 # Boolean
 schema = {
     "type": "object",
-    "properties": {
-        "is_active": {"type": "boolean"}
-    },
+    "properties": {"is_active": {"type": "boolean"}},
     "required": ["is_active"]
 }
 ```
@@ -652,7 +650,6 @@ schema = {
     "type": "array",
     "items": {"type": "string"}
 }
-
 # Example result: ["item1", "item2", "item3"]
 ```
 
@@ -671,63 +668,6 @@ schema = {
         "required": ["product", "price"]
     }
 }
-
-# Example result:
-# [
-#   {"product": "Widget", "price": 19.99, "in_stock": true},
-#   {"product": "Gadget", "price": 29.99}
-# ]
-```
-
-### Nested Object
-
-```python
-schema = {
-    "type": "object",
-    "properties": {
-        "user": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "contact": {
-                    "type": "object",
-                    "properties": {
-                        "email": {"type": "string"},
-                        "phone": {"type": "string"}
-                    }
-                }
-            }
-        }
-    }
-}
-
-# Example result:
-# {
-#   "user": {
-#     "name": "John Doe",
-#     "contact": {
-#       "email": "john@example.com",
-#       "phone": "555-1234"
-#     }
-#   }
-# }
-```
-
-### Optional Fields
-
-```python
-schema = {
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "email": {"type": "string"},
-        "phone": {"type": "string"},
-        "notes": {"type": "string"}
-    },
-    "required": ["name", "email"]  # phone and notes are optional
-}
-
-# phone and notes may or may not be present in result
 ```
 
 ### Table Extraction
@@ -746,27 +686,6 @@ schema = {
         "required": ["patient_name", "mrn"]
     }
 }
-
-# Extracts table as list of objects
-```
-
-### Conditional Fields
-
-```python
-schema = {
-    "type": "object",
-    "properties": {
-        "status": {"type": "string"},
-        "data": {"type": "object"},
-        "error_message": {"type": "string"}
-    },
-    "required": ["status"]
-}
-
-# Check if error_message exists:
-result = extract("Get status", schema=schema)
-if "error_message" in result:
-    return {"success": False, "error": result["error_message"]}
 ```
 
 ---
@@ -778,16 +697,16 @@ if "error_message" in result:
 ```
 Need to interact with UI?
 │
-├─ Just checking state? → validate()
+├─ Just checking state? → agent.verify()
 │
-├─ Extracting data? → extract()
+├─ Extracting data? → agent.extract()
 │
 ├─ Know exact coordinates?
-│  ├─ Yes → mouse.click_at() or keyboard
-│  └─ No → agent()
+│  ├─ Yes → computer.mouse.click_at() or computer.keyboard
+│  └─ No → agent.execute()
 │
 └─ Complex multi-step?
-   └─ agent() with clear description
+   └─ agent.execute() with clear description
 ```
 
 ### Choosing Timeout Values
@@ -822,35 +741,35 @@ Loops/iteration       | 40-60
 ```python
 # Problem: "Element not found"
 # Solution: Be more specific
-agent("Click the submit button")  # Vague
-agent("Click the blue 'Submit' button at the bottom right")  # Specific
+agent.execute("Click the submit button")  # Vague
+agent.execute("Click the blue 'Submit' button at the bottom right")  # Specific
 
 # Problem: Max iterations reached
 # Solution: Increase max_iterations or break into steps
-agent("Fill entire form", max_iterations=20)
+agent.execute("Fill entire form", max_iterations=20)
 ```
 
-### Validate Returns False
+### Verify Returns False
 
 ```python
 # Problem: Question too vague
 # Solution: Be specific about what to check
-validate("Is page loaded?")  # Vague
-validate("Is the dashboard visible with the patient list table?")  # Specific
+agent.verify("Is page loaded?")  # Vague
+agent.verify("Is the dashboard visible with the patient list table?")  # Specific
 
 # Problem: Timing issue
 # Solution: Increase timeout
-validate("Is data visible?", timeout=30)
+agent.verify("Is data visible?", timeout=30)
 ```
 
 ### Extract Fails
 
 ```python
 # Problem: Data not visible
-# Solution: Validate before extracting
-if not validate("Is the table visible?"):
-    return {"success": False, "error": "Table not found"}
-data = extract("Get table data", schema=schema)
+# Solution: Verify before extracting
+if not agent.verify("Is the table visible?"):
+    return Result(success=False, error="Table not found")
+data = agent.extract("Get table data", schema=schema)
 
 # Problem: Schema mismatch
 # Solution: Make fields optional or adjust schema
@@ -861,16 +780,23 @@ schema = {
 }
 ```
 
+### Keyboard Issues
+
+```python
+# Problem: xdotool error with "command" key
+# Solution: Use "ctrl" instead
+computer.keyboard.hotkey("ctrl", "a")   # ✅ Linux
+computer.keyboard.hotkey("command", "a")  # ❌ macOS only
+
+# Problem: Text concatenating in field
+# Solution: Clear field first
+agent.execute("Click the field")
+computer.keyboard.hotkey("ctrl", "a")
+computer.keyboard.press("BackSpace")
+computer.keyboard.type(params.text)
+```
+
 ---
 
-## Additional Resources
-
-- **Full Guide:** `docs/workflows/WORKFLOW_GUIDE.md`
-- **SDK Reference:** `python/nen/workflow/README.md`
-- **Example Workflow:** `workflows/demo/sdk-primitives-test/workflow.py`
-- **Publishing Guide:** `docs/guides/WORKFLOW_PUBLISHING.md`
-
----
-
-**Last Updated:** 2026-02-04  
-**Version:** 1.0.0
+**Last Updated:** 2026-02-26
+**Version:** 2.0.0

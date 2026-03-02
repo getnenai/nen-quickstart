@@ -1,68 +1,53 @@
 """
-Workflow: Website Login
+Workflow: NenAI Docs Login
 
-Navigate to a website and log in with provided credentials.
-A simple, reusable login workflow.
+Navigates to the NenAI documentation site, enters the access code,
+and extracts the page title to confirm successful access.
 """
-from nen.workflow import agent, validate, keyboard
+from nen import Agent, Computer, Secure
 from pydantic import BaseModel, Field
 
 
-class Input(BaseModel):
-    """Input parameters for this workflow."""
-    
-    web_url: str = Field(default="https://practicetestautomation.com/practice-test-login/", min_length=1, description="URL of the website to log in to")
-    username: str = Field(default="student", min_length=1, description="Username or email for login")
-    password: str = Field(default="Password123", min_length=1, description="Password for login")
+class Params(BaseModel):
+    login_url: str = Field(default="https://docs.getnen.ai/login", min_length=1, description="URL of the docs login page")
 
 
-class Output(BaseModel):
-    """Output returned by this workflow."""
-    
-    success: bool
-    message: str | None = None
-    error: str | None = None
+class SecureParams(BaseModel):
+    password: Secure[str] = Field(min_length=1, description="Access code for the NenAI docs")
 
 
-def run(input: Input) -> Output:
-    """
-    Log into a website with username and password.
-    
-    Args:
-        input: Pydantic model with login credentials
-    
-    Returns:
-        Output model with login results
-    """
-    
-    # Environment Setup: Launch browser and navigate
-    agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
-    if not validate("Is the Chromium browser open?", timeout=10):
-        return Output(success=False, error="Failed to open browser")
-    
-    # Dismiss any startup popups
-    agent("Close any welcome messages, popups, or dialogs if they appear", max_iterations=5)
-    
-    agent("Click the address bar at the top of the browser")
-    keyboard.type(input.web_url)
-    keyboard.press("Return")
-    
-    if not validate("Is the webpage loading or loaded?", timeout=30):
-        return Output(success=False, error=f"Failed to load {input.web_url}")
-    
-    # Authentication: Login to the website
-    agent(f"Click the username or email field and type '{input.username}'", max_iterations=5)
-    
-    agent("Click the password field", max_iterations=10)
-    keyboard.type(input.password, interval=0.01)
-    
-    agent("Click the Login or Sign In button", max_iterations=5)
-    
-    # Verify successful login
-    if not validate("Is the user logged in? Look for a dashboard, profile menu, navigation sidebar, or welcome message.", timeout=30):
-        return Output(success=False, error="Login verification failed - user does not appear to be logged in")
-    
-    return Output(
-        success=True,
-        message=f"Successfully logged into {input.web_url}"
+class Result(BaseModel):
+    page_title: str = Field(min_length=1, description="Title of the first page shown after gaining access")
+
+
+def run(params: Params, secure_params: SecureParams) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        raise RuntimeError("Failed to open Chromium browser")
+
+    agent.execute(f"Navigate to {params.login_url}")
+    if not agent.verify("Is the 'Enter access code' input field visible?", timeout=20):
+        raise RuntimeError(f"Access code page not found at {params.login_url}")
+
+    agent.execute("Click the access code input field")
+    computer.type(secure_params.password, interval=0.01)
+    agent.execute("Click the 'Access' button")
+
+    # Dismiss save-password popup before checking page state
+    if agent.verify("Is there a save password dialog or popup?", timeout=5):
+        agent.execute("Click 'Never' on the save password dialog")
+
+    # Check failure indicators first
+    if agent.verify("Is the 'Enter access code' input still visible?", timeout=5):
+        raise RuntimeError("Access denied — access code may be incorrect")
+    if not agent.verify("Is the documentation content visible?", timeout=20):
+        raise RuntimeError("Failed to load documentation after entering access code")
+
+    data = agent.extract(
+        "What is the title of the page now shown?",
+        Result.model_json_schema(),
     )
+    return Result.model_construct(**data)

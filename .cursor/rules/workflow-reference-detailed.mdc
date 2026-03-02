@@ -39,8 +39,7 @@ class Params(BaseModel):
 
 class Result(BaseModel):
     """Output schema — validated before returning to caller."""
-    success: bool
-    error: str | None = None
+    title: str = Field(min_length=1, description="Page title extracted from the site")
 
 
 def run(params: Params) -> Result:
@@ -51,7 +50,7 @@ def run(params: Params) -> Result:
         params: Validated Pydantic input parameters
 
     Returns:
-        Result with at minimum: success bool
+        Result model with extracted data
     """
     agent = Agent()
     computer = Computer()
@@ -59,7 +58,8 @@ def run(params: Params) -> Result:
     # Workflow logic
     agent.execute("Do something")
 
-    return Result(success=True)
+    data = agent.extract("What is the page title?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Template with Secrets
@@ -84,8 +84,7 @@ class SecureParams(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    error: str | None = None
+    account_name: str = Field(min_length=1, description="Account name shown after login")
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:
@@ -93,7 +92,8 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     computer = Computer()
 
     # Use params.username and secure_params.password
-    return Result(success=True)
+    data = agent.extract("What is the account name shown?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Params Access
@@ -111,15 +111,16 @@ name = params.patient_name
 ### Result Structure
 
 ```python
-# Success
-return Result(success=True, data=result, message="Completed successfully")
-
-# Failure
-return Result(success=False, error="Error description")
-
-# Using model_construct for extracted data
+# Return actual data extracted by the workflow
 data = agent.extract("Get article info", Result.model_json_schema())
 return Result.model_construct(**data)
+
+# Or construct directly with known values
+return Result(title="Page Title", url="https://...")
+
+# Raise for ALL failures — never encode errors in Result
+raise RuntimeError("Descriptive error message")
+raise ValueError("Validation failed — unexpected state")
 ```
 
 ---
@@ -320,14 +321,15 @@ def run(params: Params) -> Result:
     # Open and navigate
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open browser")
 
     agent.execute(f"Navigate to {params.url}")
     if not agent.verify("Is the page loaded?", timeout=20):
-        return Result(success=False, error="Failed to load page")
+        raise RuntimeError("Failed to load page")
 
     # Continue workflow...
-    return Result(success=True)
+    data = agent.extract("...", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Form Filling
@@ -339,7 +341,7 @@ def run(params: Params) -> Result:
 
     agent.execute("Navigate to contact form")
     if not agent.verify("Is the form visible?"):
-        return Result(success=False, error="Form not found")
+        raise RuntimeError("Form not found")
 
     # Fill and clear fields
     agent.execute("Click the name field")
@@ -354,10 +356,11 @@ def run(params: Params) -> Result:
 
     agent.execute("Click submit button")
 
-    if agent.verify("Is there a success message?", timeout=10):
-        return Result(success=True)
-    else:
-        return Result(success=False, error="Submission failed")
+    if not agent.verify("Is there a success message?", timeout=10):
+        raise RuntimeError("Form submission failed — no success message appeared")
+
+    data = agent.extract("What is the confirmation message?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Data Extraction
@@ -368,7 +371,7 @@ def run(params: Params) -> Result:
 
     agent.execute("Navigate to data page")
     if not agent.verify("Is the data table visible?"):
-        return Result(success=False, error="Table not found")
+        raise RuntimeError("Table not found")
 
     data = agent.extract(
         "Extract all rows from the table",
@@ -385,7 +388,7 @@ def run(params: Params) -> Result:
         }
     )
 
-    return Result(success=True, data=data)
+    return Result(rows=data)
 ```
 
 ### Login Workflow
@@ -397,7 +400,7 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     agent.execute(f"Navigate to {params.login_url}")
     if not agent.verify("Is login form visible?"):
-        return Result(success=False, error="Login page not found")
+        raise RuntimeError("Login page not found")
 
     agent.execute("Click username field")
     computer.keyboard.hotkey("ctrl", "a")
@@ -411,12 +414,14 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     computer.keyboard.press("Return")
 
-    if agent.verify("Is dashboard visible?", timeout=20):
-        return Result(success=True)
-    elif agent.verify("Is there an error message?"):
-        return Result(success=False, error="Invalid credentials")
-    else:
-        return Result(success=False, error="Login result unclear")
+    # Check failure indicators FIRST
+    if agent.verify("Is there an error message?"):
+        raise RuntimeError("Login failed — invalid credentials")
+    if not agent.verify("Is dashboard visible?", timeout=20):
+        raise RuntimeError("Login failed — dashboard not visible after submitting credentials")
+
+    data = agent.extract("What is the account name shown?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Multi-Step with Checkpoints
@@ -431,20 +436,16 @@ def run(params: Params) -> Result:
     logging.info("Step 1: Opening browser")
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open browser")
 
     logging.info("Step 2: Authenticating")
-    if not authenticate(agent, computer, params):
-        return Result(success=False, error="Authentication failed")
+    authenticate(agent, computer, params)  # raises on failure
 
     logging.info("Step 3: Extracting data")
-    try:
-        data = extract_data(agent)
-    except Exception as e:
-        return Result(success=False, error=f"Extraction failed: {e}")
+    data = extract_data(agent)  # raises on failure
 
     logging.info("Workflow completed")
-    return Result(success=True, data=data)
+    return Result(data=data)
 ```
 
 ---
@@ -456,9 +457,10 @@ def run(params: Params) -> Result:
 ```python
 try:
     agent.execute("Click submit")
-    return Result(success=True)
-except Exception as e:
-    return Result(success=False, error=str(e))
+    data = agent.extract("...", Result.model_json_schema())
+    return Result.model_construct(**data)
+except Exception:
+    raise  # Re-raise — let the platform surface the error
 ```
 
 ### Retry Pattern
@@ -470,12 +472,13 @@ max_retries = 3
 for attempt in range(max_retries):
     try:
         agent.execute("Click submit")
-        return Result(success=True)
+        data = agent.extract("...", Result.model_json_schema())
+        return Result.model_construct(**data)
     except Exception as e:
         if attempt < max_retries - 1:
             time.sleep(2)
             continue
-        return Result(success=False, error=f"Failed after {max_retries} attempts: {e}")
+        raise RuntimeError(f"Failed after {max_retries} attempts: {e}") from e
 ```
 
 ### Partial Success
@@ -493,11 +496,10 @@ def run(params: Params) -> Result:
         except Exception as e:
             errors.append({"item": item, "error": str(e)})
 
-    return Result(
-        success=len(results) > 0,
-        results=results,
-        errors=errors
-    )
+    if not results:
+        raise RuntimeError(f"All items failed to process: {errors}")
+
+    return Result(results=results, errors=errors)
 ```
 
 ### Checkpoint Pattern
@@ -517,10 +519,10 @@ def run(params: Params) -> Result:
         checkpoint = "extraction"
         data = extract_data(agent)
 
-        return Result(success=True, data=data)
+        return Result(data=data)
 
     except Exception as e:
-        return Result(success=False, error=str(e), failed_at=checkpoint)
+        raise RuntimeError(f"Workflow failed at '{checkpoint}': {e}") from e
 ```
 
 ---
@@ -538,7 +540,8 @@ def run(params: Params) -> Result:
     agent.execute("Do something")
     print("Action completed")
 
-    return Result(success=True)
+    data = agent.extract("...", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 Output:
@@ -568,7 +571,7 @@ def run(params: Params) -> Result:
         "result": data
     })
 
-    return Result(success=True, data=data)
+    return Result(data=data)
 ```
 
 ### Redacting Sensitive Data

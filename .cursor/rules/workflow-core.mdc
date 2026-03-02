@@ -193,9 +193,9 @@ if not agent.verify("Is the Chromium browser open?", timeout=10):
     raise RuntimeError("Failed to open Chromium browser")  # unrecoverable
 
 # Navigate to target URL
-agent.execute(f"Navigate to {params.url}")
+agent.execute(f"Navigate to {params.website_url}")
 if not agent.verify("Is the page loaded?", timeout=20):
-    raise RuntimeError(f"Failed to load page at {params.url}")  # unrecoverable
+    raise RuntimeError(f"Failed to load page at {params.website_url}")  # unrecoverable
 ```
 
 ### Login Workflow

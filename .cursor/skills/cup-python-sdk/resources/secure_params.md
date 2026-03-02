@@ -36,8 +36,7 @@ class SecureParams(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    error: str | None = None
+    account_name: str = Field(min_length=1, description="Account name shown after login")
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:
@@ -46,25 +45,30 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     agent.execute(f"Navigate to {params.login_url}")
     if not agent.verify("Is the login form visible?", timeout=20):
-        return Result(success=False, error="Login page not found")
+        raise RuntimeError("Login page not found or failed to load")
 
     agent.execute("Click the username or email field")
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
     computer.type(params.username)
 
     # Enter password — value is never exposed in the sandbox
     agent.execute("Click the password field")
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
     computer.type(secure_params.password, interval=0.01)
 
     computer.press("Return")
 
     if not agent.verify("Is the dashboard or main page visible?", timeout=20):
-        return Result(success=False, error="Login failed")
+        raise RuntimeError("Login failed — dashboard not visible after submitting credentials")
 
-    return Result(success=True)
+    data = agent.extract("What is the account name shown?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ## Key Rules

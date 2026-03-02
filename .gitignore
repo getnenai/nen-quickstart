@@ -19,3 +19,6 @@ Thumbs.db
 
 # Artifacts from workflow runs
 artifacts/
+
+# Private workflows - DO NOT push to public repo
+my_workflows/

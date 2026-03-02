@@ -7,7 +7,7 @@ Demonstrates:
 - Collecting results into list[dict]
 """
 
-from nen import Agent, Computer
+from nen import Agent
 from pydantic import BaseModel
 
 
@@ -16,14 +16,11 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
     data: list[dict] = []
-    error: str | None = None
 
 
 def run(params: Params) -> Result:
     agent = Agent()
-    computer = Computer()
     results = []
 
     for provider in params.provider_names:
@@ -59,10 +56,6 @@ def run(params: Params) -> Result:
         for r in results
     )
     if not any_succeeded:
-        return Result(
-            success=False,
-            data=results,
-            error="No appointments were retrieved for any provider",
-        )
+        raise RuntimeError("No appointments were retrieved for any provider")
 
-    return Result(success=True, data=results)
+    return Result(data=results)

@@ -1,13 +1,13 @@
 """Process Multiple Items — loop through a list of items passed as a workflow parameter.
 
 Demonstrates:
-- list[str] params
+- list[str] input params
 - Looping with error handling (continue on failure)
 - Array schema extraction
 - Collecting results into list[dict]
 """
 
-from nen import Agent
+from nen import Agent, Computer
 from pydantic import BaseModel
 
 
@@ -16,11 +16,14 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
+    success: bool
     data: list[dict] = []
+    error: str | None = None
 
 
 def run(params: Params) -> Result:
     agent = Agent()
+    computer = Computer()
     results = []
 
     for provider in params.provider_names:
@@ -29,7 +32,7 @@ def run(params: Params) -> Result:
         # Navigate to provider's schedule
         agent.execute(f"Click the Provider dropdown and select '{provider}'")
 
-        if not agent.verify(f"Is the schedule visible for {provider}?"):
+        if not agent.verify(f"Is the schedule visible for {provider}?", timeout=15):
             results.append({"provider": provider, "error": "Schedule not found"})
             continue
 
@@ -51,4 +54,15 @@ def run(params: Params) -> Result:
 
         results.append({"provider": provider, "appointments": appointments})
 
-    return Result(data=results)
+    any_succeeded = any(
+        isinstance(r.get("appointments"), list) and len(r["appointments"]) > 0
+        for r in results
+    )
+    if not any_succeeded:
+        return Result(
+            success=False,
+            data=results,
+            error="No appointments were retrieved for any provider",
+        )
+
+    return Result(success=True, data=results)

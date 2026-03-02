@@ -1,127 +1,61 @@
 # Files & Assets
 
-> Sandbox filesystem, assets.zip, and drive access
+> Reading files from mounted drives and writing output files from workflows
 
-## Sandbox Filesystem
+## Drive & Files
 
-Your workflow runs inside a sandbox container. Any files you write there are archived into `assets.zip` when the run completes.
+`Computer` provides access to files on mounted drives from the parent container via `computer.drive()`.
 
-```python
-from pathlib import Path
-
-# Create output directories
-Path("./reports").mkdir(parents=True, exist_ok=True)
-
-# Write files — these end up in assets.zip
-Path("./reports/summary.txt").write_text("Report content")
-```
-
----
-
-## Drive Access
-
-Use `Computer.drive()` to access files from the parent container (outside the sandbox).
+### computer.drive()
 
 ```python
 computer.drive(path: str) -> Drive
 ```
 
-> **Warning:** Drive access reads files from the parent container outside the sandbox. The sandbox filesystem at `/assets` is a tmpfs — files written there are archived to `assets.zip` when the run completes.
-
-### Mount a directory
+Returns a `Drive` object for the given path. The path can be an absolute path or a `~`-prefixed home directory path.
 
 ```python
-from nen import Computer
-
-computer = Computer()
-downloads = computer.drive("~/Downloads")
-mount = computer.drive("/mnt/tmp")
+downloads = computer.drive("~/Downloads")   # home directory
+mount = computer.drive("/mnt/tmp")          # absolute mount path
 ```
 
-### List files
+`Drive` objects also render as their path string in f-strings, so you can pass them directly to `agent.execute()`:
 
 ```python
-drive.files(pattern: str = "*") -> list[File]
+drive = computer.drive("/mnt/tmp")
+agent.execute(f"Save the file to {drive}")  # passes the path as a string
 ```
+
+### Drive.files()
 
 ```python
-downloads = computer.drive("~/Downloads")
-
-# List all files
-for f in downloads.files():
-    print(f.name, f.size)
-
-# Filter by glob pattern
-for f in downloads.files("*.pdf"):
-    print(f.name)
+drive.files() -> list[File]
 ```
 
-### Copy files to sandbox
+Returns a list of `File` objects for all files currently in the drive directory (non-recursive).
 
 ```python
-from pathlib import Path
-
-downloads = computer.drive("~/Downloads")
-Path("./output").mkdir(parents=True, exist_ok=True)
-
-for f in downloads.files("*.pdf"):
-    (Path("./output") / f.name).write_bytes(f.read_bytes())
+drive = computer.drive("~/Downloads")
+for f in drive.files():
+    print(f.name)  # filename only, e.g. "invoice_001.pdf"
 ```
 
-### Stream large files
+### File
 
-```python
-downloads = computer.drive("~/Downloads")
-for f in downloads.files("*.csv"):
-    with open(f.name, 'w') as target:
-        target.write(f.read_text())
-```
+Each `File` object has:
+
+| Attribute / Method | Type | Description |
+| --- | --- | --- |
+| `f.name` | `str` | Filename (basename only, no path) |
+| `f.read_bytes()` | `bytes` | Full file contents as bytes |
 
 ---
 
-## File Object
+## Two File Strategies
 
-| Property   | Type       | Description             |
-| ---------- | ---------- | ----------------------- |
-| `name`     | `str`      | Filename                |
-| `size`     | `int`      | Size in bytes           |
-| `modified` | `datetime` | Last modified timestamp |
+### Copy to sandbox (files appear in `assets.zip`)
 
-### read_bytes()
-
-```python
-file.read_bytes() -> bytes
-```
-
-Read file content as bytes. Use for binary files (PDFs, images, etc.).
-
-### read_text()
-
-```python
-file.read_text(encoding: str = "utf-8") -> str
-```
-
-Read file content as decoded string. Use for text files (CSVs, logs, configs). Accepts any Python codec name (`"utf-16"`, etc.).
-
----
-
-## Assets in Webhook Response
-
-When the run completes, files in the working directory are archived and delivered with the webhook:
-
-```json
-{
-  "success": true,
-  "result": { "customer_id": "ABC123" },
-  "assets": "https://s3.../assets.zip"
-}
-```
-
-> **Tip:** Organize output files into subdirectories for clarity. The full directory structure is preserved in the zip archive.
-
----
-
-## Common Pattern: Download and Save
+Read files from a drive and write them to a local path inside the sandbox. Files in the sandbox are packaged into `assets.zip` when the run completes.
 
 ```python
 from pathlib import Path
@@ -131,13 +65,122 @@ def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
 
-    # Trigger a download in the application
-    agent.execute("Click the Export CSV button")
-    agent.verify("Has the file finished downloading?", timeout=30)
-
-    # Copy from Downloads to sandbox
     downloads = computer.drive("~/Downloads")
-    Path("./exports").mkdir(parents=True, exist_ok=True)
-    for f in downloads.files("*.csv"):
-        (Path("./exports") / f.name).write_text(f.read_text())
+    paid_path = Path("./paid")
+    paid_path.mkdir(parents=True, exist_ok=True)
+
+    agent.execute("Select all paid invoices and download them")
+    for f in downloads.files():
+        if f.name in params.selected_files:
+            (paid_path / f.name).write_bytes(f.read_bytes())
 ```
+
+### Stream to a mounted drive
+
+Read files from one drive and write them directly to another mounted path. Use this for large files or when you want them delivered via the mount rather than `assets.zip`.
+
+```python
+drive_mount = computer.drive("/mnt/tmp")
+agent.execute(f"Select all unpaid invoices and save to {drive_mount}")
+for f in drive_mount.files():
+    with open(f.name, "wb") as target:
+        target.write(f.read_bytes())
+```
+
+---
+
+## Output Directory
+
+Workflows write output files to the `/artifacts/` directory. When the run completes, all files in `/artifacts/` are packaged into `assets.zip` and included in the API response.
+
+```python
+import json
+import os
+from pathlib import Path
+
+# Create the artifacts directory (workflow output location — not the browser download folder)
+os.makedirs("/artifacts", exist_ok=True)
+
+# Write files
+data = {"example": "value"}  # replace with your actual extracted data
+Path("/artifacts/report.txt").write_text("Report content")
+Path("/artifacts/data.json").write_text(json.dumps(data, indent=2))
+```
+
+> **Note:** Always call `os.makedirs("/artifacts", exist_ok=True)` before writing files to ensure the directory exists. `/artifacts/` is the workflow's designated output directory — files placed here are packaged into `assets.zip` on run completion.
+
+---
+
+## Common Pattern: Save Extracted Data as JSON
+
+```python
+import json
+import os
+from nen import Agent, Computer
+
+
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+    # ... navigate and extract data ...
+
+    data = agent.extract("Extract all appointments", schema={...})
+
+    os.makedirs("/artifacts", exist_ok=True)
+    with open("/artifacts/appointments.json", "w") as f:
+        json.dump(data, f, indent=2)
+
+    # Verify the file was created
+    if not os.path.exists("/artifacts/appointments.json"):
+        return Result(success=False, error="Failed to save appointments file")
+
+    return Result(success=True)
+```
+
+---
+
+## Common Pattern: Count Downloaded Files
+
+When a workflow triggers browser downloads, ensure the browser is configured to save files directly into `/artifacts/` (or move files there after download). The count below relies on files being present in `/artifacts/` — if your download target differs, move the files there first. Verify with `os.popen`:
+
+```python
+import os
+
+# Count PDFs in artifacts
+result = os.popen("ls /artifacts/*.pdf 2>/dev/null | wc -l").read().strip()
+num_docs = int(result) if result.isdigit() else 0
+
+if num_docs == 0:
+    return Result(success=False, error="No PDF documents were downloaded")
+
+return Result(success=True, documents_downloaded=num_docs)
+```
+
+---
+
+## Common Pattern: Clear Previous Files
+
+Before running a download workflow, clear any leftover files from previous runs:
+
+```python
+import os
+
+os.system("rm -f /artifacts/*.pdf 2>/dev/null")
+os.makedirs("/artifacts", exist_ok=True)
+```
+
+---
+
+## Assets in API Response
+
+When the run completes, files in `/artifacts/` are delivered with the result:
+
+```json
+{
+  "success": true,
+  "result": { "documents_downloaded": 3 },
+  "assets": "https://s3.../assets.zip"
+}
+```
+
+> **Tip:** Organize output files into subdirectories for clarity. The full directory structure is preserved in the zip archive.

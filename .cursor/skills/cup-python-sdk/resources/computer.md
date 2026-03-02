@@ -3,28 +3,25 @@
 > Direct keyboard, mouse, and filesystem access inside the sandbox
 
 ```python
-from nen import Computer
-
-computer = Computer()
+from nen import Agent, Computer
 ```
 
-## Constructor
+> **Prefer `agent.execute()` for interactions that require finding elements visually.** Use `Computer` when you need precise, direct control — for example, typing text after clicking a field, or using keyboard shortcuts.
+
+Create a `Computer` instance inside your `run()` function:
 
 ```python
-Computer()
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+    # ... use computer.type/press/hotkey and computer.mouse
 ```
 
-Takes no arguments. Reads configuration from environment variables set by the sandbox runtime.
-
 ---
 
-## Drive & Files
+## Keyboard Methods
 
-`Computer` provides access to files on mounted drives from the parent container. See `files.md` for the full API reference including `Drive` and `File` objects, file listing, reading, and streaming patterns.
-
----
-
-## Keyboard
+Keyboard methods are called **directly on `computer`** — there is no `computer.keyboard` sub-object.
 
 ### type()
 
@@ -41,11 +38,12 @@ Type text character by character. Also accepts `SecureValue` references for secr
 
 ```python
 computer.type("hello@example.com")
-computer.type("slow input", interval=0.05)
-
-# Type a secret — value never enters the sandbox
-computer.type(secure_params.password)
+computer.type(params.username)
+# For secrets, use Secure[str] in SecureParams — never store passwords in plain Params
+computer.type(secure_params.password, interval=0.01)
 ```
+
+> **Important:** Always clear the field before typing. Use `agent.execute()` to select-all and delete any pre-existing content, then type.
 
 ### press()
 
@@ -58,36 +56,37 @@ Press a single key.
 **Available keys:** `Return`, `Tab`, `Escape`, `BackSpace`, `Delete`, `Up`, `Down`, `Left`, `Right`, `Home`, `End`, `Page_Up`, `Page_Down`, `F1`–`F12`.
 
 ```python
-computer.press("Return")
-computer.press("Tab")
-computer.press("Escape")
-```
-
-### hotkey()
-
-```python
-computer.hotkey(*keys: str) -> None
-```
-
-Press a key combination.
-
-**Modifiers:** `ctrl`, `alt`, `shift`, `super`.
-
-```python
-computer.hotkey("ctrl", "c")
-computer.hotkey("ctrl", "shift", "s")
+computer.press("Return")    # submit form / confirm
+computer.press("Tab")       # move to next field
+computer.press("Escape")    # close dialog
+computer.press("BackSpace") # delete character
 ```
 
 ---
 
-## Mouse
+## computer.drive()
 
-> Prefer `Agent.execute()` for interactions that require finding elements visually. Use `Computer` mouse methods when you know exact coordinates.
+`Computer` provides access to files on mounted drives from the parent container. See `files.md` for the full API reference including the `Drive` and `File` objects, file listing, reading, and streaming patterns.
+
+```python
+drive = computer.drive("~/Downloads")   # home directory path
+mount = computer.drive("/mnt/tmp")      # absolute mount path
+
+for f in drive.files():
+    data = f.read_bytes()   # read file contents
+    print(f.name)           # filename (basename only)
+```
+
+---
+
+## computer.mouse
+
+> Use mouse methods when you have exact screen coordinates. Otherwise, prefer `agent.execute()` to locate and click elements visually.
 
 ### click_at()
 
 ```python
-computer.click_at(x: int, y: int, button: str = "left") -> None
+computer.mouse.click_at(x: int, y: int, button: str = "left") -> None
 ```
 
 Click at specific screen coordinates.
@@ -99,26 +98,26 @@ Click at specific screen coordinates.
 | `button`  | `str` | `"left"` | `"left"` or `"right"` |
 
 ```python
-computer.click_at(100, 200)                    # Left click
-computer.click_at(100, 200, button="right")    # Right click
+computer.mouse.click_at(100, 200)                   # left click
+computer.mouse.click_at(100, 200, button="right")   # right click
 ```
 
 ### move()
 
 ```python
-computer.move(x: int, y: int) -> None
+computer.mouse.move(x: int, y: int) -> None
 ```
 
-Move the cursor without clicking.
+Move the cursor to a position without clicking.
 
 ```python
-computer.move(500, 300)
+computer.mouse.move(500, 300)
 ```
 
 ### scroll()
 
 ```python
-computer.scroll(direction: str = "down", amount: int = 3, x: int | None = None, y: int | None = None) -> None
+computer.mouse.scroll(direction: str = "down", amount: int = 3, x: int | None = None, y: int | None = None) -> None
 ```
 
 | Parameter   | Type          | Default  | Description            |
@@ -129,7 +128,7 @@ computer.scroll(direction: str = "down", amount: int = 3, x: int | None = None, 
 | `y`         | `int \| None` | `None`   | Scroll at Y coordinate |
 
 ```python
-computer.scroll()                          # Scroll down 3 ticks
-computer.scroll("up", 5)                   # Scroll up 5 ticks
-computer.scroll("down", 3, x=400, y=300)  # Scroll at position
+computer.mouse.scroll()                         # scroll down 3 ticks
+computer.mouse.scroll("up", 5)                  # scroll up 5 ticks
+computer.mouse.scroll("down", 3, x=400, y=300) # scroll at position
 ```

@@ -11,17 +11,16 @@ You are an AI assistant helping to author NenAI computer use workflows using the
 
 **Workflows run in Linux containers**, NOT on your local machine. This means:
 
-- **Use Linux keyboard commands:** `keyboard.hotkey("ctrl", "a")` ❌ NOT `"command"`
+- **Use Linux keyboard commands** — use `computer.type()` and `computer.press()` for input
 - **xdotool is the keyboard/mouse tool:** Linux key names only (ctrl, shift, alt, super)
 - **Browser:** Chromium (open-source browser) - available in taskbar
 - **OS:** Ubuntu-based Linux container
 
 **IMPORTANT: Browser Management**
 - Chromium browser needs to be opened at the start of workflows
-- ❌ **DO NOT use** `agent("Open Chromium")` or `agent("Open Google Chrome")` - this causes the VLM to use bash commands to install/launch browsers
-- ✅ **DO use** `agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")` or similar GUI-based instructions
-- ✅ **ALTERNATIVE:** Use visual instructions like `agent("Find and click the blue Chromium browser icon")`
-- After opening, verify with `validate("Is the Chromium browser open?")`
+- ❌ **DO NOT use** `agent.execute("Open Chromium")` or `agent.execute("Open Google Chrome")` - this causes the VLM to use bash commands to install/launch browsers
+- ✅ **DO use** `agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")` or similar GUI-based instructions
+- After opening, verify with `agent.verify("Is the Chromium browser open?")`
 
 **Common mistakes:**
 - Using macOS "command" key crashes with `"No such key name 'command'"` error
@@ -32,7 +31,7 @@ For detailed platform compatibility, see **@workflow-python-sdk**.
 
 ## Workflow Structure
 
-Python-based workflows use the `nen.workflow` SDK.
+Python-based workflows use the `nen` SDK with `Agent` and `Computer`.
 
 **File structure:**
 ```
@@ -47,44 +46,45 @@ Workflow: [Name]
 
 Description of what this workflow does.
 """
-from nen.workflow import agent, validate, extract, keyboard, mouse
+from nen import Agent, Computer
 from pydantic import BaseModel, Field
 
 
-class Input(BaseModel):
+class Params(BaseModel):
     """Input parameters for this workflow."""
-    
+
     website_url: str = Field(default="https://example.com", min_length=1)
 
 
-class Output(BaseModel):
+class Result(BaseModel):
     """Output returned by this workflow."""
-    
-    success: bool
-    error: str | None = None
+
+    title: str = Field(min_length=1, description="Page title extracted from the site")
 
 
-def run(input: Input) -> Output:
+def run(params: Params) -> Result:
     """
     Main workflow entry point.
-    
+
     Args:
-        input: Pydantic model with workflow input parameters
-    
+        params: Pydantic model with workflow input parameters
+
     Returns:
-        Output model with workflow results
+        Result model with workflow results
     """
-    # Workflow logic - open Chromium and navigate
-    agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
-    if not validate("Is the Chromium browser open?", timeout=10):
-        return Output(success=False, error="Failed to open browser")
-    
-    agent(f"Navigate to {input.website_url}")
-    if not validate("Is the website loaded?"):
-        return Output(success=False, error="Failed to load website")
-    
-    # Return results
-    return Output(success=True)
+    agent = Agent()
+    computer = Computer()
+
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        raise RuntimeError("Failed to open Chromium browser")
+
+    agent.execute(f"Navigate to {params.website_url}")
+    if not agent.verify("Is the website loaded?"):
+        raise RuntimeError(f"Failed to load {params.website_url}")
+
+    data = agent.extract("What is the page title?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ## Python Syntax Rules
@@ -134,53 +134,53 @@ This catches errors before deployment and ensures the workflow will execute corr
 
 ## SDK Primitives Quick Reference
 
-### agent(description, max_iterations=10)
-Execute natural language action using VLM.
+### Agent
+AI-driven screen controller. Create once per `run()`:
 ```python
-agent("Click the submit button")
-agent("Fill in the entire form", max_iterations=20)
+agent = Agent()
 ```
 
-### validate(question, timeout=10)
+### agent.execute(description, max_iterations=10)
+Execute natural language action using VLM.
+```python
+agent.execute("Click the submit button")
+agent.execute("Fill in the entire form", max_iterations=20)
+```
+
+### agent.verify(question, timeout=10)
 Check UI state with yes/no question.
 ```python
-if validate("Is the login form visible?"):
+if agent.verify("Is the login form visible?"):
     # Proceed
     pass
 ```
 
-### extract(query, schema)
-Extract structured data using JSON schema.
+### agent.extract(query, schema)
+Extract structured data using JSON schema. Prefer passing `Result.model_json_schema()` directly so the extraction schema stays in sync with the return type.
 ```python
-data = extract(
-    "What is the account balance?",
-    schema={
-        "type": "object",
-        "properties": {"balance": {"type": "number"}},
-        "required": ["balance"]
-    }
-)
+data = agent.extract("What is the account balance?", Result.model_json_schema())
+return Result.model_construct(**data)
 ```
 
-### mouse
+### Computer
+Direct keyboard/mouse control (no VLM). Create once per `run()`:
+```python
+computer = Computer()
+```
+
+### computer.mouse
 Direct mouse control (no VLM).
 ```python
-from nen.workflow import mouse
-
-mouse.click_at(500, 300)
-mouse.move(400, 200)
+computer.mouse.click_at(500, 300)
+computer.mouse.move(400, 200)
 ```
 
-### keyboard
-Direct keyboard control (no VLM). **Use Linux key names only.**
+### computer keyboard methods
+Direct keyboard control (no VLM). Methods are called directly on `computer`, NOT on `computer.keyboard`.
 ```python
-from nen.workflow import keyboard
-
-keyboard.type("hello@example.com")
-keyboard.press("Return")
-keyboard.hotkey("ctrl", "a")  # Select all (Linux: ctrl, NOT command)
-keyboard.hotkey("ctrl", "c")  # Copy
-keyboard.press("BackSpace")   # Delete
+computer.type("hello@example.com")
+computer.press("Return")
+computer.press("BackSpace")
 ```
 
 ## Common Patterns
@@ -188,94 +188,75 @@ keyboard.press("BackSpace")   # Delete
 ### Browser Automation
 ```python
 # Open Chromium using GUI-based instruction (avoids bash commands)
-agent("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
-if not validate("Is the Chromium browser open?", timeout=10):
-    return Output(success=False, error="Failed to open browser")
+agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+if not agent.verify("Is the Chromium browser open?", timeout=10):
+    raise RuntimeError("Failed to open Chromium browser")  # unrecoverable
 
 # Navigate to target URL
-agent(f"Navigate to {input.url}")
-if not validate("Is the page loaded?", timeout=20):
-    return Output(success=False, error="Failed to load page")
+agent.execute(f"Navigate to {params.url}")
+if not agent.verify("Is the page loaded?", timeout=20):
+    raise RuntimeError(f"Failed to load page at {params.url}")  # unrecoverable
 ```
 
 ### Login Workflow
 ```python
-agent("Navigate to login page")
-if not validate("Is login form visible?"):
-    return Output(success=False, error="Login page not found")
+agent.execute(f"Navigate to {params.login_url}")
+if not agent.verify("Is login form visible?"):
+    raise RuntimeError("Login page not found or failed to load")
 
-# Fill username field - clear existing content first
-agent("Click username field")
-keyboard.hotkey("ctrl", "a")  # Select all (Linux-compatible)
-keyboard.press("BackSpace")   # Clear field
-keyboard.type(input.username)
+agent.execute("Click username field")
+computer.type(params.username)
 
-# Fill password field - clear existing content first
-agent("Click password field")
-keyboard.hotkey("ctrl", "a")  # Select all
-keyboard.press("BackSpace")   # Clear field
-keyboard.type(input.password, interval=0.01)
+agent.execute("Click password field")
+computer.type(secure_params.password, interval=0.01)
 
-agent("Click login button")
+agent.execute("Click login button")
 
 # Check failure indicators FIRST (more reliable)
-if validate("Are we still on the login page?", timeout=10):
-    return Output(success=False, error="Login failed - still on login page")
-elif validate("Is there an error message visible?"):
-    return Output(success=False, error="Login failed - error message displayed")
-elif validate("Is dashboard visible?", timeout=20):
-    return Output(success=True, message="Login successful")
-else:
-    return Output(success=False, error="Unable to verify login state")
+if agent.verify("Are we still on the login page?", timeout=10):
+    raise RuntimeError("Login failed — still on login page after submitting credentials")
+elif agent.verify("Is there an error message visible?"):
+    raise RuntimeError("Login failed — error message displayed")
+elif not agent.verify("Is dashboard visible?", timeout=20):
+    raise RuntimeError("Unable to verify login state — dashboard not found")
 ```
 
 ### Data Extraction
 ```python
-if not validate("Is the data table visible?"):
-    return Output(success=False, error="Table not found")
+if not agent.verify("Is the data table visible?"):
+    raise RuntimeError("Table not found — cannot extract data")
 
-data = extract(
-    "Extract all rows from the table",
-    schema={
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "value": {"type": "number"}
-            }
-        }
-    }
-)
-
-return Output(success=True, data=data)
+data = agent.extract("Extract all rows from the table", Result.model_json_schema())
+return Result.model_construct(**data)
 ```
 
 ## Best Practices
 
-1. **Use Pydantic models** - Define `Input` and `Output` classes with type hints and validation
+1. **Use Pydantic models** - Define `Params` and `Result` classes with type hints and validation
 
 2. **Validate before deploying** - Always run `nen_validate()` tool before publishing workflows
 
-3. **Use Linux keyboard commands** - Always use `"ctrl"` not `"command"` (workflows run in Linux containers)
+3. **Use `computer.type()` and `computer.press()`** for keyboard input — `computer.hotkey()` is not reliable; use `agent.execute()` for actions requiring key combinations
 
-4. **Clear fields before typing** - Always select all (`ctrl+a`) + delete before typing into input fields
+4. **Check failure BEFORE success** - In verification logic, check for error indicators first, then success indicators
 
-5. **Check failure BEFORE success** - In validation logic, check for error indicators first, then success indicators
+5. **Be specific in verifications** - "Is there an 'Invalid email' error?" not "Did it work?"
 
-6. **Be specific in validations** - "Is there an 'Invalid email' error?" not "Did it work?"
+6. **Be specific in agent.execute() descriptions** - "Click the blue 'Submit' button in the bottom right" not "Click submit"
 
-7. **Be specific in agent() descriptions** - "Click the blue 'Submit' button in the bottom right" not "Click submit"
+7. **Verify before extracting** - Always check UI state before data extraction
 
-8. **Validate before extracting** - Always check UI state before data extraction
+8. **`Result` models actual data, not a success/failure envelope** — define fields for the data being extracted (e.g. `customer_id: str`, `instructions: str`). Use `Field` validators to enforce data quality. Raise exceptions for all failures — do not add `success: bool` or `error: str | None` to `Result`.
 
-9. **Return structured Output** - Use Pydantic `Output` model, include `success: bool` field
+9. **Use `Result.model_json_schema()` with `agent.extract()`** — pass it directly so extraction schema stays in sync with the return type. Return with `Result.model_construct(**data)`.
 
 10. **Use Field validation** - `Field(default="...", min_length=1, ge=0)` for input validation
 
 11. **Don't log sensitive data** - Redact passwords, tokens, and credentials
 
-12. **Default to failure when unclear** - If state is ambiguous, return `Output(success=False, error="...")`
+12. **Raise for all failures** — browser won't open, site unreachable, login rejected, extraction empty, page not found → always `raise RuntimeError("...")` or `raise ValueError("...")`
+
+12. **SecureParams fields never have defaults** - `Secure[str]` fields must NOT use `default=` in `Field()`. The platform injects secrets at runtime. Use `Field(min_length=1, description="...")` only.
 
 ## For More Details
 

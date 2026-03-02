@@ -5,7 +5,7 @@ alwaysApply: false
 
 # CUP Workflow Authoring Guide
 
-Comprehensive guide for authoring CUP workflows using the `nen.workflow` SDK.
+Comprehensive guide for authoring CUP workflows using the `nen` SDK (`Agent`, `Computer`, `Secure`).
 
 ## Table of Contents
 
@@ -13,10 +13,10 @@ Comprehensive guide for authoring CUP workflows using the `nen.workflow` SDK.
 2. [Getting Started](#getting-started)
 3. [SDK Primitives Overview](#sdk-primitives-overview)
 4. [Agent Primitive](#agent-primitive)
-5. [Validation Primitive](#validation-primitive)
+5. [Verification Primitive](#verification-primitive)
 6. [Extract Primitive](#extract-primitive)
-7. [Mouse and Keyboard Control](#mouse-and-keyboard-control)
-8. [Variables and Configuration](#variables-and-configuration)
+7. [Computer Control](#computer-control)
+8. [Params and Configuration](#params-and-configuration)
 9. [Error Handling](#error-handling)
 10. [Logging and Debugging](#logging-and-debugging)
 11. [Best Practices](#best-practices)
@@ -101,7 +101,7 @@ Workflows run in isolated Docker sandbox containers with full desktop environmen
 
 ### Workflow File Structure
 
-Every workflow is a Python file with a `handler()` function:
+Every workflow is a Python file with a `run()` function:
 
 ```python
 """
@@ -109,155 +109,152 @@ Workflow: Example Workflow
 
 Brief description of what this workflow does.
 """
-from nen.workflow import agent, validate, extract, keyboard, mouse
+from nen import Agent, Computer
+from pydantic import BaseModel, Field
 
 
-def handler(payload: dict) -> dict:
+class Params(BaseModel):
+    website_url: str = Field(default="https://example.com", min_length=1)
+
+
+class Result(BaseModel):
+    success: bool
+    url: str | None = None
+    error: str | None = None
+
+
+def run(params: Params) -> Result:
     """
     Main workflow entry point.
-    
+
     Args:
-        payload: Input parameters passed when the workflow is executed.
-                 Access variables like: payload.get("VAR_NAME", "default")
-    
+        params: Validated Pydantic model with workflow input parameters.
+
     Returns:
-        dict: Results to return from workflow execution.
-              Should include at minimum: {"success": bool}
+        Result model with workflow results.
     """
-    # Get input variables
-    website_url = payload.get("WEBSITE_URL", "https://example.com")
-    
-    # Perform workflow actions
-    agent("Click the Chromium browser icon in the taskbar")
-    agent(f"Navigate to {website_url}")
-    
-    # Validate state
-    if not validate("Is the website loaded?"):
-        return {"success": False, "error": "Failed to load website"}
-    
-    # Return results
-    return {
-        "success": True,
-        "url": website_url
-    }
+    agent = Agent()
+    computer = Computer()
+
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
+
+    agent.execute(f"Navigate to {params.website_url}")
+    if not agent.verify("Is the website loaded?", timeout=20):
+        return Result(success=False, error="Failed to load website")
+
+    return Result(success=True, url=params.website_url)
 ```
 
-### Payload and Return Values
+### Params and Return Values
 
-**Payload Structure:**
+**Params Model:**
 
-The `payload` dict contains input variables passed when the workflow executes:
+Define a Pydantic `Params` model with type hints and validation:
 
 ```python
-def handler(payload: dict) -> dict:
-    # Access with defaults (optional variables)
-    url = payload.get("WEBSITE_URL", "https://default.com")
-    timeout = payload.get("TIMEOUT", 30)
-    
-    # Required variables (will raise KeyError if missing)
-    patient_name = payload["PATIENT_NAME"]
-    
-    # Type checking/validation
-    if not isinstance(patient_name, str):
-        return {"success": False, "error": "PATIENT_NAME must be a string"}
+class Params(BaseModel):
+    # URLs with defaults
+    website_url: str = Field(default="https://example.com", min_length=1)
+
+    # Numeric with validation
+    max_items: int = Field(default=10, ge=1, le=100)
+
+    # Required fields (no default)
+    patient_name: str = Field(min_length=1)
+
+    # Optional fields
+    include_attachments: bool = Field(default=True)
+
+    # List of strings
+    provider_names: list[str] = Field(default_factory=list)
 ```
 
-**Return Value Structure:**
+**Result Model:**
 
-Always return a dict with at least a `success` field:
+Define a Pydantic `Result` model with type hints:
 
 ```python
-# Success case
-return {
-    "success": True,
-    "data": extracted_data,
-    "message": "Workflow completed successfully"
-}
+class Result(BaseModel):
+    # Always include success
+    success: bool
+    error: str | None = None
 
-# Failure case
-return {
-    "success": False,
-    "error": "Specific error message",
-    "details": {"step": "login", "reason": "Invalid credentials"}
-}
+    # Add workflow-specific fields
+    title: str | None = None
+    data: list[dict] = []
+    count: int = 0
+    message: str | None = None
 ```
 
-### Basic Example Walkthrough
-
-Let's walk through a complete example from `workflows/demo/sdk-primitives-test/workflow.py`:
+### Basic Example
 
 ```python
-from nen.workflow import agent, validate, extract
+from nen import Agent, Computer
+from pydantic import BaseModel, Field
 
 
-def handler(payload: dict) -> dict:
-    # 1. Get input variables with defaults
-    website_url = payload.get("WEBSITE_URL", "https://news.ycombinator.com")
-    title_number = payload.get("TITLE_NUMBER", "1")
-    
-    # 2. Use natural language to control the computer
-    agent("Click the Chromium browser icon in the taskbar")
-    agent(f"Navigate to {website_url}")
-    
-    # 3. Validate that we reached the expected state
-    if not validate("Is the website loaded in the browser?"):
-        return {"success": False, "error": "Failed to load website"}
-    
-    # 4. Extract structured data from the screen
-    result = extract(
-        f"What is the title of the {title_number}th post on the page?",
+class Params(BaseModel):
+    website_url: str = Field(default="https://news.ycombinator.com", min_length=1)
+    title_number: int = Field(default=1, ge=1)
+
+
+class Result(BaseModel):
+    success: bool
+    title: str | None = None
+    error: str | None = None
+
+
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    # 1. Open the browser
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
+
+    # 2. Navigate to URL
+    agent.execute(f"Navigate to {params.website_url}")
+    if not agent.verify("Is the website loaded in the browser?", timeout=20):
+        return Result(success=False, error="Failed to load website")
+
+    # 3. Extract structured data
+    data = agent.extract(
+        f"What is the title of the {params.title_number}th post on the page?",
         schema={
             "type": "object",
-            "properties": {
-                "title": {"type": "string"}
-            },
+            "properties": {"title": {"type": "string"}},
             "required": ["title"]
         }
     )
-    
-    # 5. Return results
-    return {
-        "success": True,
-        "title": result.get("title"),
-    }
+
+    return Result(success=True, title=data.get("title"))
 ```
-
-**What This Does:**
-
-1. Opens Chromium browser
-2. Navigates to specified URL
-3. Validates page loaded
-4. Extracts specific data using VLM
-5. Returns extracted data
-
-**Key Patterns:**
-- Natural language instructions to `agent()`
-- Validation checkpoints with `validate()`
-- Structured extraction with JSON schema
-- Clear success/failure return values
 
 ---
 
 ## SDK Primitives Overview
 
-The `nen.workflow` SDK provides five main primitives:
+The `nen` SDK provides these main primitives:
 
 | Primitive | Purpose | Uses VLM | When to Use |
 |-----------|---------|----------|-------------|
-| `agent()` | Execute natural language action | Yes | Complex UI interactions, dynamic content |
-| `validate()` | Check UI state | Yes | Verify page loaded, confirm success |
-| `extract()` | Extract structured data | Yes | Read tables, forms, lists |
-| `mouse` | Direct mouse control | No | Known coordinates, precise clicks |
-| `keyboard` | Direct keyboard control | No | Type text, press keys, shortcuts |
+| `agent.execute()` | Execute natural language action | Yes | Complex UI interactions, dynamic content |
+| `agent.verify()` | Check UI state | Yes | Verify page loaded, confirm success |
+| `agent.extract()` | Extract structured data | Yes | Read tables, forms, lists |
+| `computer.mouse` | Direct mouse control | No | Known coordinates, precise clicks |
+| `computer.keyboard` | Direct keyboard control | No | Type text, press keys, shortcuts |
 
 **Decision Tree for Choosing Primitives:**
 
 ```
 Need to interact with UI?
-├─ Know exact coordinates? → Use mouse/keyboard
-├─ Need to find element visually? → Use agent()
-├─ Just checking state? → Use validate()
-└─ Need to extract data? → Use extract()
+├─ Know exact coordinates? → Use computer.mouse/computer.keyboard
+├─ Need to find element visually? → Use agent.execute()
+├─ Just checking state? → Use agent.verify()
+└─ Need to extract data? → Use agent.extract()
 ```
 
 ---
@@ -266,60 +263,17 @@ Need to interact with UI?
 
 ### Overview
 
-The `agent()` primitive uses a VLM to interpret your natural language description, analyze the current screen, and perform the appropriate actions.
+The `agent.execute()` method uses a VLM to interpret your natural language description, analyze the current screen, and perform the appropriate actions.
 
 ```python
-from nen.workflow import agent
-
-result = agent("Click the submit button")
+agent = Agent()
+agent.execute("Click the submit button")
 ```
-
-### How It Works Internally
-
-**Execution Flow:**
-
-1. **Snapshot** - Takes screenshot of current desktop
-2. **VLM Analysis** - Sends screenshot + description to VLM
-3. **Tool Selection** - VLM decides which computer tools to use
-4. **Action Execution** - Executes clicks, typing, etc.
-5. **Iteration** - VLM sees result, continues if needed
-6. **Completion** - Returns when goal achieved or max iterations reached
-
-**RPC Communication:**
-
-```python
-# agent() makes RPC call to parent service
-rpc_call(
-    "/internal/workflow/agent",
-    {
-        "description": "Click the submit button",
-        "max_iterations": 10
-    }
-)
-```
-
-Parent service manages the VLM conversation loop and computer tool execution.
 
 ### Function Signature
 
 ```python
-def agent(description: str, max_iterations: int = 10) -> dict[str, Any]:
-    """Execute a natural language action using VLM.
-    
-    Args:
-        description: Natural language description of what to do
-        max_iterations: Maximum number of LLM conversation turns (default: 10)
-    
-    Returns:
-        dict with:
-            - success: bool
-            - messages: list of conversation messages
-            - error: optional error message (if failed)
-    
-    Raises:
-        WorkflowError: If the action fails
-        RPCError: If communication with parent fails
-    """
+def execute(description: str, max_iterations: int = 10) -> None
 ```
 
 ### Writing Effective Descriptions
@@ -328,34 +282,27 @@ def agent(description: str, max_iterations: int = 10) -> dict[str, Any]:
 
 ```python
 # Specific and actionable
-agent("Click the blue 'Sign In' button in the top right corner")
+agent.execute("Click the blue 'Sign In' button in the top right corner")
 
 # Clear goal with context
-agent("Scroll down until you can see the Contact Us section")
+agent.execute("Scroll down until you can see the Contact Us section")
 
 # Step-by-step for complex actions
-agent("Click the 'Add User' button, then fill in the name field with 'John Doe'")
+agent.execute("Click the 'Add User' button, then fill in the name field with 'John Doe'")
 ```
 
 **Bad Descriptions:**
 
 ```python
 # Too vague
-agent("Do the login thing")  # What login? Where?
+agent.execute("Do the login thing")  # What login? Where?
 
 # Multiple unrelated actions
-agent("Login, check email, download report, and log out")  # Too complex
+agent.execute("Login, check email, download report, and log out")  # Too complex
 
 # Assumptions without context
-agent("Click it")  # Click what?
+agent.execute("Click it")  # Click what?
 ```
-
-**Tips:**
-
-1. **Be Specific** - Include visual details (color, position, text)
-2. **One Clear Goal** - Don't combine unrelated actions
-3. **Provide Context** - Explain what you're looking for
-4. **Avoid Ambiguity** - Use precise language
 
 ### Max Iterations
 
@@ -363,13 +310,13 @@ The `max_iterations` parameter controls how many turns the VLM can take:
 
 ```python
 # Simple action - low iterations
-agent("Click the submit button", max_iterations=5)
+agent.execute("Click the submit button", max_iterations=5)
 
 # Complex multi-step - higher iterations
-agent("Fill in the entire registration form", max_iterations=20)
+agent.execute("Fill in the entire registration form", max_iterations=20)
 
 # Iterative search - very high iterations
-agent("Find and click each 'Download' link on the page", max_iterations=50)
+agent.execute("Find and click each 'Download' link on the page", max_iterations=50)
 ```
 
 **Guidelines:**
@@ -378,213 +325,131 @@ agent("Find and click each 'Download' link on the page", max_iterations=50)
 - **Complex sequences**: 20-30 iterations
 - **Loops/iteration**: 40-60 iterations
 
-If max_iterations is reached, `agent()` raises `WorkflowError`.
-
 ### When to Use Agent vs Direct Control
 
-**Use `agent()` when:**
+**Use `agent.execute()` when:**
 - Element position is dynamic or unknown
 - Need to find element by visual appearance
 - Complex multi-step interaction
 - UI structure may vary
 
-**Use `mouse`/`keyboard` when:**
+**Use `computer.mouse`/`computer.keyboard` when:**
 - Know exact coordinates
 - Repeating same action precisely
 - Performance is critical (avoid VLM overhead)
 - Element position is guaranteed stable
 
-**Example:**
-
-```python
-# Use agent() - button position unknown
-agent("Click the 'Next' button")
-
-# Use mouse.click_at() - position known and stable
-mouse.click_at(500, 300)  # Click submit at known coordinates
-```
-
-### Error Handling
-
-```python
-from nen.workflow import agent, WorkflowError
-
-try:
-    result = agent("Click the non-existent button", max_iterations=5)
-    print(f"Success: {result['success']}")
-except WorkflowError as e:
-    # Action failed after retries
-    print(f"Agent failed: {e}")
-    return {"success": False, "error": str(e)}
-```
-
-**Common Failure Modes:**
-
-1. **Element not found** - VLM can't locate what you described
-2. **Max iterations reached** - Task too complex for iteration limit
-3. **Ambiguous description** - Multiple elements match description
-4. **State changed unexpectedly** - Page changed during execution
-
 ---
 
-## Validation Primitive
+## Verification Primitive
 
 ### Overview
 
-The `validate()` primitive checks if a UI condition is true by asking the VLM a yes/no question about the current screen.
+The `agent.verify()` method checks if a UI condition is true by asking the VLM a yes/no question about the current screen.
 
 ```python
-from nen.workflow import validate
-
-if validate("Is the login form visible?"):
+agent = Agent()
+if agent.verify("Is the login form visible?"):
     # Proceed with login
     pass
 ```
 
-### How It Works Internally
-
-**Execution Flow:**
-
-1. **Snapshot** - Takes screenshot
-2. **VLM Query** - Asks VLM yes/no question
-3. **Retry Logic** - Polls periodically until timeout or success
-4. **Return** - Returns True/False
-
-```python
-# validate() makes RPC call
-rpc_call(
-    "/internal/workflow/validate",
-    {
-        "question": "Is the login form visible?",
-        "timeout": 10
-    }
-)
-```
-
-**Retry Behavior:**
-
-Unlike `agent()`, `validate()` will **poll** until the condition becomes true or timeout is reached. This is useful for waiting for page loads or async operations.
-
 ### Function Signature
 
 ```python
-def validate(question: str, timeout: int = 10) -> bool:
-    """Validate the current screen state using VLM.
-    
-    Args:
-        question: Yes/no question about the current screen state
-        timeout: Maximum seconds to wait for validation (default: 10)
-    
-    Returns:
-        True if condition is met, False otherwise
-    
-    Raises:
-        RPCError: If communication with parent fails
-    """
+def verify(question: str, timeout: int = 10) -> bool
 ```
 
-### Writing Unambiguous Validation Questions
+Polls until the condition is met or the timeout expires. Returns `True` if met, `False` otherwise.
+
+### Writing Unambiguous Verification Questions
 
 **Good Questions:**
 
 ```python
 # Clear yes/no answer
-validate("Is the login page visible with username and password fields?")
+agent.verify("Is the login page visible with username and password fields?")
 
 # Specific observable state
-validate("Does the page show 'Login Successful' message?")
+agent.verify("Does the page show 'Login Successful' message?")
 
-# Negative validation
-validate("Is there an error message displayed?")
+# Negative verification
+agent.verify("Is there an error message displayed?")
 ```
 
 **Bad Questions:**
 
 ```python
 # Too general
-validate("Is everything working?")
+agent.verify("Is everything working?")
 
 # Multiple conditions
-validate("Is the page loaded and showing correct data and no errors?")
+agent.verify("Is the page loaded and showing correct data and no errors?")
 
 # Subjective
-validate("Does the page look right?")
+agent.verify("Does the page look right?")
 ```
 
-**Tips:**
-
-1. **Ask One Thing** - Don't combine multiple checks
-2. **Be Observable** - Ask about visible elements
-3. **Be Specific** - Include identifying details
-4. **Binary Answer** - Must be clearly yes or no
-
-### Using Validation in Control Flow
+### Using Verification in Control Flow
 
 ```python
-def handler(payload: dict) -> dict:
-    agent("Click the login button")
-    
+def run(params: Params) -> Result:
+    agent = Agent()
+    agent.execute("Click the login button")
+
     # Wait for login to complete
-    if validate("Is the dashboard visible?", timeout=20):
-        # Success path
+    if agent.verify("Is the dashboard visible?", timeout=20):
         return process_dashboard()
     else:
-        # Failure path
-        if validate("Is there an error message?"):
-            return {"success": False, "error": "Login failed"}
+        if agent.verify("Is there an error message?"):
+            return Result(success=False, error="Login failed")
         else:
-            return {"success": False, "error": "Unknown state after login"}
+            return Result(success=False, error="Unknown state after login")
 ```
 
-### Best Practices for Validation Placement
+### Best Practices for Verification Placement
 
-**Critical Validation Points:**
+**Critical Verification Points:**
 
 1. **After Navigation** - Verify page loaded
    ```python
-   agent("Navigate to https://example.com")
-   if not validate("Is the example.com homepage visible?"):
-       return {"success": False, "error": "Navigation failed"}
+   agent.execute("Navigate to https://example.com")
+   if not agent.verify("Is the example.com homepage visible?"):
+       return Result(success=False, error="Navigation failed")
    ```
 
 2. **After Form Submission** - Check success/failure
    ```python
-   agent("Click submit")
-   if validate("Is there a success message?"):
-       return {"success": True}
+   agent.execute("Click submit")
+   if agent.verify("Is there a success message?"):
+       return Result(success=True)
    ```
 
 3. **Before Data Extraction** - Ensure data is present
    ```python
-   if not validate("Is the table with patient data visible?"):
-       return {"success": False, "error": "Data not found"}
-   result = extract("Extract patient names", schema=schema)
+   if not agent.verify("Is the table with patient data visible?"):
+       return Result(success=False, error="Data not found")
+   data = agent.extract("Extract patient names", schema=schema)
    ```
 
 4. **State Transitions** - Confirm state changed
    ```python
-   agent("Click the 'Upload' tab")
-   if not validate("Is the Upload tab active?"):
-       return {"success": False, "error": "Failed to switch tabs"}
+   agent.execute("Click the 'Upload' tab")
+   if not agent.verify("Is the Upload tab active?"):
+       return Result(success=False, error="Failed to switch tabs")
    ```
-
-**Anti-Patterns:**
-
-❌ Validating after every single action
-❌ Validating things that just happened (agent already confirmed)
-❌ Using validation for non-binary checks
 
 ### Timeout Considerations
 
 ```python
 # Quick check - page should be instant
-validate("Is the button visible?", timeout=5)
+agent.verify("Is the button visible?", timeout=5)
 
 # Page load - allow time for network
-validate("Is the dashboard loaded?", timeout=30)
+agent.verify("Is the dashboard loaded?", timeout=30)
 
 # File download - longer timeout
-validate("Did the download complete?", timeout=60)
+agent.verify("Did the download complete?", timeout=60)
 ```
 
 ---
@@ -593,67 +458,41 @@ validate("Did the download complete?", timeout=60)
 
 ### Overview
 
-The `extract()` primitive uses VLM to extract structured data from the screen according to a JSON schema.
+The `agent.extract()` method uses VLM to extract structured data from the screen according to a JSON schema.
 
 ```python
-from nen.workflow import extract
-
-data = extract(
+agent = Agent()
+data = agent.extract(
     "What is the user's email address?",
     schema={
         "type": "object",
-        "properties": {
-            "email": {"type": "string"}
-        },
+        "properties": {"email": {"type": "string"}},
         "required": ["email"]
     }
 )
-
 print(data["email"])  # user@example.com
-```
-
-### How It Works Internally
-
-**Execution Flow:**
-
-1. **Snapshot** - Takes screenshot
-2. **VLM Query** - Sends screenshot + query + schema to VLM
-3. **Structured Output** - VLM returns data conforming to schema
-4. **Validation** - Validates against JSON schema
-5. **Return** - Returns parsed data (dict or list)
-
-```python
-# extract() makes RPC call
-rpc_call(
-    "/internal/workflow/extract",
-    {
-        "query": "What is the user's email?",
-        "schema_def": {
-            "type": "object",
-            "properties": {"email": {"type": "string"}},
-            "required": ["email"]
-        }
-    }
-)
 ```
 
 ### Function Signature
 
 ```python
-def extract(query: str, schema: dict[str, Any]) -> dict | list:
-    """Extract structured data from the screen using VLM.
-    
-    Args:
-        query: Description of what data to extract
-        schema: JSON Schema defining the expected output structure
-    
-    Returns:
-        Extracted data matching the schema (dict or list)
-    
-    Raises:
-        WorkflowError: If extraction fails
-        RPCError: If communication with parent fails
-    """
+def extract(query: str, schema: dict) -> dict | list
+```
+
+### Using Result Model Schema
+
+The cleanest pattern uses your `Result` model's JSON schema directly:
+
+```python
+class Result(BaseModel):
+    title: str
+    author: str | None = None
+
+def run(params: Params) -> Result:
+    agent = Agent()
+    # ...navigate to page...
+    data = agent.extract("What is the article title and author?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Writing Effective Extraction Queries
@@ -662,30 +501,14 @@ def extract(query: str, schema: dict[str, Any]) -> dict | list:
 
 ```python
 # Specific and clear
-extract("What is the total price shown in the cart?", schema=price_schema)
+agent.extract("What is the total price shown in the cart?", schema=price_schema)
 
 # Table extraction
-extract("Extract all patient names from the table", schema=patients_schema)
+agent.extract("Extract all patient names from the table", schema=patients_schema)
 
 # Form data
-extract("Get the values from the registration form", schema=form_schema)
+agent.extract("Get the values from the registration form", schema=form_schema)
 ```
-
-**Bad Queries:**
-
-```python
-# Too vague
-extract("Get the data", schema=schema)
-
-# Multiple unrelated things
-extract("Get the price, username, and error messages", schema=schema)
-```
-
-**Tips:**
-
-1. **Match Query to Schema** - Query should describe what schema expects
-2. **Be Specific** - Include location hints if needed
-3. **One Data Point** - Don't try to extract unrelated things
 
 ### Defining JSON Schemas
 
@@ -695,9 +518,7 @@ extract("Get the price, username, and error messages", schema=schema)
 # Single value
 single_schema = {
     "type": "object",
-    "properties": {
-        "total": {"type": "number"}
-    },
+    "properties": {"total": {"type": "number"}},
     "required": ["total"]
 }
 
@@ -724,530 +545,142 @@ list_schema = {
         "required": ["product", "price"]
     }
 }
-
-# Nested structure
-nested_schema = {
-    "type": "object",
-    "properties": {
-        "user": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "address": {
-                    "type": "object",
-                    "properties": {
-                        "street": {"type": "string"},
-                        "city": {"type": "string"}
-                    }
-                }
-            }
-        }
-    }
-}
 ```
-
-### Common Schema Patterns
-
-**Pattern 1: Single Field Extraction**
-
-```python
-# Extract one value
-result = extract(
-    "What is the account balance?",
-    schema={
-        "type": "object",
-        "properties": {
-            "balance": {"type": "number"}
-        },
-        "required": ["balance"]
-    }
-)
-balance = result["balance"]
-```
-
-**Pattern 2: Table/List Extraction**
-
-```python
-# Extract multiple rows
-patients = extract(
-    "Extract all patient information from the table",
-    schema={
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "dob": {"type": "string"},
-                "mrn": {"type": "string"}
-            },
-            "required": ["name", "dob", "mrn"]
-        }
-    }
-)
-
-for patient in patients:
-    print(f"{patient['name']} - {patient['dob']}")
-```
-
-**Pattern 3: Form Data Extraction**
-
-```python
-# Extract form values
-form_data = extract(
-    "Get all values from the contact form",
-    schema={
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "email": {"type": "string"},
-            "phone": {"type": "string"},
-            "message": {"type": "string"}
-        },
-        "required": ["name", "email"]  # phone and message optional
-    }
-)
-```
-
-**Pattern 4: Conditional Extraction**
-
-```python
-# Extract with optional fields
-result = extract(
-    "Extract appointment details",
-    schema={
-        "type": "object",
-        "properties": {
-            "date": {"type": "string"},
-            "time": {"type": "string"},
-            "error_message": {"type": "string"}  # May or may not exist
-        },
-        "required": ["date", "time"]
-    }
-)
-
-if "error_message" in result:
-    return {"success": False, "error": result["error_message"]}
-```
-
-### Handling Extraction Failures
-
-```python
-from nen.workflow import extract, WorkflowError
-
-try:
-    data = extract("Get the user email", schema=email_schema)
-    return {"success": True, "email": data["email"]}
-except WorkflowError as e:
-    # Extraction failed - data not visible or doesn't match schema
-    print(f"Extraction failed: {e}")
-    return {"success": False, "error": "Could not extract email"}
-```
-
-**Common Failure Modes:**
-
-1. **Data not visible** - Element not on screen
-2. **Schema mismatch** - Actual data doesn't fit schema structure
-3. **Ambiguous query** - VLM unsure what to extract
-4. **Type mismatch** - String found when number expected
 
 ---
 
-## Mouse and Keyboard Control
+## Computer Control
 
 ### Overview
 
-The `mouse` and `keyboard` modules provide **deterministic** (non-VLM) computer control. Use these when you know exact coordinates or key sequences.
+The `Computer` class provides **deterministic** (non-VLM) keyboard and mouse control. Use when you know exact key sequences or coordinates.
 
 ```python
-from nen.workflow import mouse, keyboard
-
-mouse.click_at(500, 300)
-keyboard.type("hello@example.com")
-keyboard.press("Return")
+computer = Computer()
+computer.mouse.click_at(500, 300)
+computer.keyboard.type("hello@example.com")
+computer.keyboard.press("Return")
 ```
 
-### Mouse Module
-
-#### click_at(x, y, button="left")
-
-Click at specific screen coordinates.
+### Keyboard
 
 ```python
-# Left click at (100, 200)
-mouse.click_at(100, 200)
+# Type text
+computer.keyboard.type("hello@example.com")
+computer.keyboard.type("password", interval=0.01)  # slower typing
+
+# Press single key
+computer.keyboard.press("Return")
+computer.keyboard.press("Tab")
+computer.keyboard.press("Escape")
+computer.keyboard.press("BackSpace")
+
+# Keyboard shortcuts (Linux key names!)
+computer.keyboard.hotkey("ctrl", "a")          # select all
+computer.keyboard.hotkey("ctrl", "c")          # copy
+computer.keyboard.hotkey("ctrl", "v")          # paste
+computer.keyboard.hotkey("ctrl", "shift", "s") # save as
+```
+
+### Mouse
+
+```python
+# Left click
+computer.mouse.click_at(100, 200)
 
 # Right click
-mouse.click_at(100, 200, button="right")
+computer.mouse.click_at(100, 200, button="right")
 
-# Middle click
-mouse.click_at(100, 200, button="middle")
-```
+# Move cursor
+computer.mouse.move(500, 300)
 
-**Parameters:**
-- `x` (int): X coordinate in pixels from left edge
-- `y` (int): Y coordinate in pixels from top edge
-- `button` (str): "left", "right", or "middle" (default: "left")
-
-**Raises:** `WorkflowError` if click fails
-
-#### move(x, y)
-
-Move mouse cursor without clicking.
-
-```python
-# Move cursor to (500, 300)
-mouse.move(500, 300)
-```
-
-**Use Cases:**
-- Hover to reveal tooltips
-- Position before clicking
-- Trigger hover effects
-
-### Keyboard Module
-
-#### type(text, interval=0.02)
-
-Type text character by character.
-
-```python
-# Basic typing
-keyboard.type("hello@example.com")
-
-# Slower typing (0.05s between chars)
-keyboard.type("username", interval=0.05)
-
-# Fast typing (0.01s between chars)
-keyboard.type("password123", interval=0.01)
-```
-
-**Parameters:**
-- `text` (str): Text to type
-- `interval` (float): Delay between characters in seconds (default: 0.02)
-
-**Raises:** `WorkflowError` if typing fails
-
-#### press(key)
-
-Press a single key.
-
-```python
-# Common keys
-keyboard.press("Return")  # Enter key
-keyboard.press("Tab")
-keyboard.press("Escape")
-keyboard.press("BackSpace")
-keyboard.press("Delete")
-
-# Arrow keys
-keyboard.press("Up")
-keyboard.press("Down")
-keyboard.press("Left")
-keyboard.press("Right")
-
-# Function keys
-keyboard.press("F5")  # Refresh
-keyboard.press("F11")  # Fullscreen
-
-# Navigation keys
-keyboard.press("Home")
-keyboard.press("End")
-keyboard.press("Page_Up")
-keyboard.press("Page_Down")
-```
-
-**Key Names:**
-- Standard: "Return", "Tab", "Escape", "BackSpace", "Delete"
-- Arrows: "Up", "Down", "Left", "Right"
-- Function: "F1" through "F12"
-- Navigation: "Home", "End", "Page_Up", "Page_Down"
-- Modifiers: "Shift_L", "Control_L", "Alt_L", "Super_L"
-
-#### hotkey(*keys)
-
-Press multiple keys together (keyboard shortcuts).
-
-```python
-# Copy
-keyboard.hotkey("ctrl", "c")
-
-# Paste
-keyboard.hotkey("ctrl", "v")
-
-# Save
-keyboard.hotkey("ctrl", "s")
-
-# Save As
-keyboard.hotkey("ctrl", "shift", "s")
-
-# Close window
-keyboard.hotkey("alt", "F4")
-
-# Select all
-keyboard.hotkey("ctrl", "a")
-```
-
-**Common Modifiers:**
-- `"ctrl"` - Control key
-- `"alt"` - Alt key
-- `"shift"` - Shift key
-- `"super"` - Windows/Command key
-
-### Coordinate System and Resolution
-
-**Coordinate Origin:**
-
-```
-(0, 0)  ──────────────► X
-  │
-  │
-  │
-  ▼
-  Y
-
-Screen: (width, height)
-```
-
-- Origin (0, 0) is top-left corner
-- X increases right, Y increases down
-- Coordinates are in pixels
-
-**Finding Coordinates:**
-
-1. Take screenshot during workflow development
-2. Use image viewer to find pixel coordinates
-3. Use `agent()` first to find element, then switch to coordinates
-
-**Resolution Considerations:**
-
-```python
-# Coordinates may need adjustment for different resolutions
-# Consider making coordinates configurable via payload
-def handler(payload: dict) -> dict:
-    # Allow coordinate overrides
-    submit_x = payload.get("SUBMIT_X", 500)
-    submit_y = payload.get("SUBMIT_Y", 300)
-    
-    mouse.click_at(submit_x, submit_y)
-```
-
-### When to Use Direct Control vs Agent
-
-**Use `mouse`/`keyboard` when:**
-
-✅ Element position is known and stable  
-✅ Repeating same action many times  
-✅ Performance critical (avoid VLM overhead)  
-✅ Simple deterministic input  
-✅ Coordinates from previous agent() run
-
-**Use `agent()` when:**
-
-✅ Element position unknown or dynamic  
-✅ Need to find element visually  
-✅ UI structure may change  
-✅ Complex multi-step interaction  
-✅ Element identified by appearance, not position
-
-**Example - Hybrid Approach:**
-
-```python
-# Use agent to find submit button once
-agent("Find the blue submit button")
-
-# Use validation to confirm it's at expected location
-if validate("Is the submit button at the bottom of the form?"):
-    # Now use direct mouse click for speed (if position known)
-    mouse.click_at(500, 600)
-else:
-    # Fall back to agent
-    agent("Click the submit button")
+# Scroll
+computer.mouse.scroll("down", 3)
+computer.mouse.scroll("up", 5)
+computer.mouse.scroll("down", 3, x=400, y=300)  # scroll at position
 ```
 
 ---
 
-## Variables and Configuration
+## Params and Configuration
 
-### Accessing Input Variables from Payload
+### Accessing Input Parameters
 
-The `payload` dict contains all input variables passed to the workflow:
-
-```python
-def handler(payload: dict) -> dict:
-    # Get variables with .get() method (returns None if missing)
-    website_url = payload.get("WEBSITE_URL")
-    if website_url:
-        print(f"URL provided: {website_url}")
-    
-    # Get with default value
-    timeout = payload.get("TIMEOUT", 30)  # Defaults to 30 if not provided
-    
-    # Get required variable (raises KeyError if missing)
-    try:
-        patient_name = payload["PATIENT_NAME"]
-    except KeyError:
-        return {
-            "success": False,
-            "error": "PATIENT_NAME is required but was not provided"
-        }
-    
-    # Type checking
-    if not isinstance(patient_name, str):
-        return {
-            "success": False,
-            "error": "PATIENT_NAME must be a string"
-        }
-```
-
-### Providing Default Values
-
-**Pattern: Sensible Defaults**
+Parameters come in via the validated `Params` Pydantic model:
 
 ```python
-def handler(payload: dict) -> dict:
-    # URLs with defaults
-    base_url = payload.get("BASE_URL", "https://example.com")
-    
-    # Numeric configuration
-    max_retries = payload.get("MAX_RETRIES", 3)
-    page_timeout = payload.get("PAGE_TIMEOUT", 30)
-    
-    # Boolean flags
-    headless = payload.get("HEADLESS", False)
-    verbose = payload.get("VERBOSE", True)
-    
-    # Lists with defaults
-    allowed_domains = payload.get("ALLOWED_DOMAINS", ["example.com"])
-```
+class Params(BaseModel):
+    website_url: str = Field(default="https://example.com", min_length=1)
+    timeout: int = Field(default=30, ge=1)
+    patient_name: str = Field(min_length=1)
+    verbose: bool = Field(default=True)
+    allowed_domains: list[str] = Field(default_factory=list)
 
-**Pattern: Required vs Optional**
 
-```python
-def handler(payload: dict) -> dict:
-    # Required variables - fail fast if missing
-    required_vars = ["PATIENT_NAME", "PATIENT_DOB"]
-    for var in required_vars:
-        if var not in payload:
-            return {
-                "success": False,
-                "error": f"Required variable {var} is missing"
-            }
-    
-    # Optional variables with defaults
-    output_format = payload.get("OUTPUT_FORMAT", "pdf")
-    include_attachments = payload.get("INCLUDE_ATTACHMENTS", True)
+def run(params: Params) -> Result:
+    # Access params directly as attributes
+    print(f"URL provided: {params.website_url}")
+    print(f"Timeout: {params.timeout}")
+
+    agent = Agent()
+    agent.execute(f"Navigate to {params.website_url}")
 ```
 
 ### Returning Results from Workflow
 
-**Minimum Return Structure:**
-
 ```python
-# Success
-return {"success": True}
+# Minimal success
+return Result(success=True)
 
-# Failure
-return {"success": False, "error": "Error message"}
-```
+# Failure with reason
+return Result(success=False, error="Error message")
 
-**Rich Return Data:**
-
-```python
-# Return extracted data
-return {
-    "success": True,
-    "patient": {
-        "name": "John Doe",
-        "mrn": "12345",
-        "appointments": [...]
-    },
-    "files_downloaded": 3,
-    "execution_time_seconds": 45.2
-}
-
-# Return with warnings
-return {
-    "success": True,
-    "data": result,
-    "warnings": ["Some optional fields were missing"]
-}
-
-# Detailed failure
-return {
-    "success": False,
-    "error": "Login failed",
-    "details": {
-        "step": "authentication",
-        "reason": "Invalid credentials",
-        "retry_attempted": True
-    }
-}
+# Rich return data
+return Result(
+    success=True,
+    data=[{"name": "John", "mrn": "12345"}],
+    count=1,
+    message="Found 1 patient record"
+)
 ```
 
 ### Sensitive Data Handling
 
-**DO NOT:**
-
-❌ Log sensitive data to stdout/logs  
-❌ Include passwords in return values  
-❌ Print credentials for debugging
-
-**DO:**
-
-✅ Redact sensitive data in logs  
-✅ Use environment variables for secrets when possible  
-✅ Return success/failure without exposing credentials
+Use `SecureParams` for any sensitive values:
 
 ```python
-import logging
+from nen import Secure
 
-def handler(payload: dict) -> dict:
-    password = payload.get("PASSWORD")
-    
-    # BAD - logs password
-    print(f"Using password: {password}")
-    
-    # GOOD - redact in logs
-    logging.info("Authenticating", extra={
-        "username": payload.get("USERNAME"),
-        "password": "***REDACTED***"
-    })
-    
-    # Use password without logging
-    keyboard.type(password, interval=0.01)
-    
-    # BAD - returns password
-    return {"success": True, "password": password}
-    
-    # GOOD - no sensitive data in return
-    return {"success": True, "authenticated": True}
+class SecureParams(BaseModel):
+    password: Secure[str] = Field(min_length=1)
+
+def run(params: Params, secure_params: SecureParams) -> Result:
+    computer = Computer()
+    # Use without logging
+    computer.keyboard.type(secure_params.password, interval=0.01)
+
+    # ❌ NEVER log sensitive values
+    # print(f"Using password: {secure_params.password}")
+
+    return Result(success=True)
 ```
 
 ---
 
 ## Error Handling
 
-### WorkflowError Exception
+### Return vs Raise
 
-All SDK primitives can raise `WorkflowError` when operations fail:
+Return `Result(success=False, error="...")` — do **not** raise exceptions:
 
 ```python
-from nen.workflow import agent, validate, extract, WorkflowError
+# ✅ CORRECT — structured failure
+if not agent.verify("Is the page loaded?", timeout=20):
+    return Result(success=False, error="Page failed to load")
 
-try:
-    agent("Click the submit button")
-except WorkflowError as e:
-    print(f"Agent failed: {e}")
-    return {"success": False, "error": str(e)}
-```
-
-**Exception Hierarchy:**
-
-```
-WorkflowError (base)
-├── RPCError (communication failure)
-├── TimeoutError (operation timed out)
-└── ValidationError (validation failed)
+# ❌ WRONG — do not raise exceptions
+if not agent.verify("Is the page loaded?"):
+    raise RuntimeError("Page failed to load")
 ```
 
 ### Try/Except Patterns
@@ -1255,151 +688,66 @@ WorkflowError (base)
 **Pattern 1: Graceful Degradation**
 
 ```python
-def handler(payload: dict) -> dict:
+def run(params: Params) -> Result:
+    agent = Agent()
     try:
-        # Try primary method
-        agent("Click the blue submit button")
-    except WorkflowError:
-        # Fallback to alternative
+        agent.execute("Click the blue submit button")
+    except Exception:
         try:
-            agent("Click any submit button")
-        except WorkflowError as e:
-            return {"success": False, "error": f"Could not submit: {e}"}
-    
-    return {"success": True}
+            agent.execute("Click any submit button")
+        except Exception as e:
+            return Result(success=False, error=f"Could not submit: {e}")
+
+    return Result(success=True)
 ```
 
 **Pattern 2: Checkpoint Recovery**
 
 ```python
-def handler(payload: dict) -> dict:
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
     checkpoint = "start"
-    
+
     try:
         checkpoint = "opening_browser"
-        agent("Click the Chromium browser icon in the taskbar")
-        
+        agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+
         checkpoint = "navigating"
-        agent("Navigate to login page")
-        
+        agent.execute(f"Navigate to {params.login_url}")
+
         checkpoint = "logging_in"
-        agent("Perform login")
-        
+        agent.execute("Perform login")
+
         checkpoint = "extracting_data"
-        data = extract("Get user data", schema=schema)
-        
-        return {"success": True, "data": data}
-        
-    except WorkflowError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "failed_at": checkpoint
-        }
+        data = agent.extract("Get user data", schema=schema)
+
+        return Result(success=True, data=data)
+
+    except Exception as e:
+        return Result(success=False, error=str(e), failed_at=checkpoint)
 ```
 
-**Pattern 3: Retry with Backoff**
+**Pattern 3: Partial Success Handling**
 
 ```python
-import time
-from nen.workflow import agent, WorkflowError
-
-def handler(payload: dict) -> dict:
-    max_retries = 3
-    retry_delay = 2
-    
-    for attempt in range(max_retries):
-        try:
-            agent("Click the submit button")
-            return {"success": True}
-        except WorkflowError as e:
-            if attempt < max_retries - 1:
-                print(f"Attempt {attempt + 1} failed, retrying in {retry_delay}s...")
-                time.sleep(retry_delay)
-                retry_delay *= 2  # Exponential backoff
-            else:
-                return {
-                    "success": False,
-                    "error": f"Failed after {max_retries} attempts: {e}"
-                }
-```
-
-### Graceful Degradation
-
-**Provide Partial Results:**
-
-```python
-def handler(payload: dict) -> dict:
+def run(params: Params) -> Result:
+    agent = Agent()
     results = []
     errors = []
-    
-    patients = ["Patient A", "Patient B", "Patient C"]
-    
-    for patient in patients:
+
+    for item in params.items:
         try:
-            data = extract(f"Get data for {patient}", schema=schema)
-            results.append({"patient": patient, "data": data})
-        except WorkflowError as e:
-            errors.append({"patient": patient, "error": str(e)})
-    
-    # Return partial success
-    return {
-        "success": len(results) > 0,
-        "results": results,
-        "errors": errors,
-        "summary": f"Succeeded: {len(results)}, Failed: {len(errors)}"
-    }
-```
+            data = process_item(agent, item)
+            results.append({"item": item, "data": data})
+        except Exception as e:
+            errors.append({"item": item, "error": str(e)})
 
-### Error Reporting in Return Values
-
-**Structured Error Information:**
-
-```python
-def handler(payload: dict) -> dict:
-    try:
-        # Workflow logic
-        pass
-    except WorkflowError as e:
-        return {
-            "success": False,
-            "error": {
-                "message": str(e),
-                "type": type(e).__name__,
-                "step": "current_step_name",
-                "recoverable": False,
-                "suggested_action": "Check credentials and retry"
-            }
-        }
-```
-
-**Common Error Response Patterns:**
-
-```python
-# Authentication failure
-{
-    "success": False,
-    "error": "Authentication failed",
-    "error_type": "auth_error",
-    "details": {"username": "user@example.com"}
-}
-
-# Data not found
-{
-    "success": False,
-    "error": "Patient record not found",
-    "error_type": "not_found",
-    "search_criteria": {"name": "John Doe", "dob": "1980-01-01"}
-}
-
-# Timeout
-{
-    "success": False,
-    "error": "Operation timed out",
-    "error_type": "timeout",
-    "timeout_seconds": 60,
-    "operation": "page_load"
-}
+    return Result(
+        success=len(results) > 0,
+        results=results,
+        errors=errors
+    )
 ```
 
 ---
@@ -1411,130 +759,37 @@ def handler(payload: dict) -> dict:
 All `print()` calls are automatically captured as structured JSONL logs:
 
 ```python
-def handler(payload: dict) -> dict:
-    # Simple messages
+def run(params: Params) -> Result:
     print("Starting workflow")
-    print(f"Processing patient: {payload.get('PATIENT_NAME')}")
-    
-    # Status updates
+    print(f"Processing patient: {params.patient_name}")
+
+    agent = Agent()
     print("Opening browser...")
-    agent("Click the Chromium browser icon in the taskbar")
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     print("Browser opened successfully")
-    
-    # Data inspection (for debugging)
-    result = extract("Get data", schema=schema)
-    print(f"Extracted data: {result}")
-    
-    return {"success": True}
+
+    return Result(success=True)
 ```
-
-**Output in `workflow-log.jsonl`:**
-
-```json
-{"timestamp":"2026-02-04T10:30:00.123","level":"INFO","logger":"workflow.print","message":"Starting workflow","stream":"stdout"}
-{"timestamp":"2026-02-04T10:30:01.456","level":"INFO","logger":"workflow.print","message":"Processing patient: John Doe","stream":"stdout"}
-{"timestamp":"2026-02-04T10:30:02.789","level":"INFO","logger":"workflow.print","message":"Opening browser...","stream":"stdout"}
-```
-
-**When to use `print()`:**
-
-✅ Quick debugging during development  
-✅ Simple status messages  
-✅ Temporary inspection of values
 
 ### Using logging.info() for Structured Logs
-
-For production workflows, use the `logging` module with `extra` parameter for structured data:
 
 ```python
 import logging
 
-def handler(payload: dict) -> dict:
-    # Configure logging (optional - has defaults)
-    logging.basicConfig(level=logging.INFO)
-    
-    # Structured logging
+def run(params: Params) -> Result:
     logging.info("Workflow started", extra={
-        "patient_name": payload.get("PATIENT_NAME"),
+        "patient_name": params.patient_name,
         "workflow_version": "1.0.0"
     })
-    
-    # Log actions
-    logging.info("Authenticating", extra={
-        "username": payload.get("USERNAME"),
-        "password": "***REDACTED***"
-    })
-    
-    # Log extracted data
-    result = extract("Get data", schema=schema)
+
+    agent = Agent()
+    data = agent.extract("Get data", schema=schema)
     logging.info("Data extracted", extra={
-        "record_count": len(result),
-        "data": result
+        "record_count": len(data),
+        "data": data
     })
-    
-    return {"success": True}
-```
 
-**Output in `workflow-log.jsonl`:**
-
-```json
-{"timestamp":"2026-02-04T10:30:00.123","level":"INFO","logger":"root","message":"Workflow started","patient_name":"John Doe","workflow_version":"1.0.0"}
-{"timestamp":"2026-02-04T10:30:05.456","level":"INFO","logger":"root","message":"Data extracted","record_count":3,"data":[...]}
-```
-
-### Key Differences: print() vs logging.info()
-
-| Method | Use Case | Output Format | Best For |
-|--------|----------|---------------|----------|
-| `print()` | Quick debugging, simple messages | String captured as `message` | Development, temporary logging |
-| `logging.info()` | Structured data, metrics, events | Objects preserved as JSON fields | Production, metrics, analysis |
-
-### JSONL Output Format
-
-Both methods produce **JSONL** (JSON Lines) format - one JSON object per line:
-
-```json
-{"timestamp":"...","level":"INFO","message":"..."}
-{"timestamp":"...","level":"INFO","message":"..."}
-{"timestamp":"...","level":"ERROR","message":"..."}
-```
-
-**Benefits:**
-
-- Easy to parse programmatically
-- Each line is valid JSON
-- Streamable (don't need full file)
-- Compatible with log analysis tools
-
-### Log Files
-
-Workflows produce two log files in the artifacts directory:
-
-**1. `workflow-log.jsonl`** - User-facing logs
-
-Contains:
-- All `print()` statements
-- All `logging.info()` / `logging.warning()` / `logging.error()` calls
-- User-generated output only
-
-**2. `system-log.jsonl`** - Complete logs
-
-Contains:
-- Everything from `workflow-log.jsonl`
-- System internals (RPC calls, VLM requests)
-- Performance metrics
-- Debug information
-
-**Reading Logs:**
-
-```python
-import json
-
-# Parse JSONL file
-with open("workflow-log.jsonl") as f:
-    for line in f:
-        log_entry = json.loads(line)
-        print(f"{log_entry['timestamp']}: {log_entry['message']}")
+    return Result(success=True)
 ```
 
 ### Debugging Workflows with `get_run_logs()`
@@ -1551,109 +806,20 @@ get_run_logs(messageId="...")
 # Then analyzes the logs to:
 # 1. Find where the workflow actually failed
 # 2. See what the VLM was "thinking" at each step
-# 3. Check validation results (did checks pass or fail?)
+# 3. Check verification results (did checks pass or fail?)
 # 4. Review extraction attempts and results
 # 5. Compare actual behavior (in logs) with expected behavior (user described)
 ```
-
-**Why This is Critical:**
-- Logs show the ground truth of what happened
-- Without logs, you're guessing and might make wrong changes
-- Logs contain VLM reasoning that explains decisions
-- Logs reveal subtle issues that aren't visible in the code
 
 **Common Debugging Scenarios:**
 
 | User Says | What to Do | What to Look for in Logs |
 |-----------|------------|--------------------------|
 | "It didn't click the button" | `get_run_logs()` | Search for button-related actions, check if element was found |
-| "It should have logged in" | `get_run_logs()` | Look for authentication attempts, check validation results |
+| "It should have logged in" | `get_run_logs()` | Look for authentication attempts, check verification results |
 | "The extraction failed" | `get_run_logs()` | Find extraction calls, see what data was returned or why it failed |
 | "It got stuck" | `get_run_logs()` | Check where iteration stopped, look for max_iterations reached |
 | "It typed the wrong thing" | `get_run_logs()` | Search for keyboard.type() calls, verify what was actually typed |
-
-**Reading Logs Effectively:**
-
-```jsonl
-# Logs are in JSONL format (one JSON object per line)
-{"timestamp":"...","level":"INFO","message":"Agent action: Click the submit button"}
-{"timestamp":"...","level":"INFO","message":"VLM reasoning: I see a blue submit button at..."}
-{"timestamp":"...","level":"INFO","message":"Validation result: True"}
-{"timestamp":"...","level":"ERROR","message":"WorkflowError: Element not found"}
-```
-
-**What to Search for in Logs:**
-- `"error"` - Find error messages
-- `"failed"` - Identify failures
-- `"validation"` - See which checks passed/failed
-- `"extract"` - Check data extraction results
-- `"VLM reasoning"` or `"thinking"` - Understand AI decisions
-- The specific element name user mentioned (e.g., "submit button")
-
----
-
-### Debugging Strategies
-
-**Strategy 1: Checkpoint Logging**
-
-```python
-def handler(payload: dict) -> dict:
-    logging.info("Checkpoint: Starting workflow")
-    
-    agent("Open browser")
-    logging.info("Checkpoint: Browser opened")
-    
-    agent("Navigate to login")
-    logging.info("Checkpoint: Navigated to login")
-    
-    if not validate("Is login form visible?"):
-        logging.error("Checkpoint: Login form not visible")
-        return {"success": False, "error": "Login form not found"}
-    
-    logging.info("Checkpoint: Login form visible")
-    return {"success": True}
-```
-
-**Strategy 2: Data Inspection**
-
-```python
-def handler(payload: dict) -> dict:
-    # Log inputs
-    logging.info("Input payload", extra={"payload": payload})
-    
-    # Extract and log data
-    result = extract("Get data", schema=schema)
-    logging.info("Extraction result", extra={
-        "result_type": type(result).__name__,
-        "result_keys": list(result.keys()) if isinstance(result, dict) else None,
-        "result_length": len(result) if isinstance(result, (list, dict)) else None,
-        "result": result
-    })
-    
-    # Log validation results
-    is_valid = validate("Is page loaded?")
-    logging.info("Validation result", extra={"is_valid": is_valid})
-```
-
-**Strategy 3: Error Context**
-
-```python
-from nen.workflow import agent, WorkflowError
-import logging
-
-def handler(payload: dict) -> dict:
-    try:
-        agent("Click submit")
-    except WorkflowError as e:
-        # Log full error context
-        logging.error("Agent failed", extra={
-            "error": str(e),
-            "error_type": type(e).__name__,
-            "action": "click submit",
-            "payload": payload
-        })
-        return {"success": False, "error": str(e)}
-```
 
 ---
 
@@ -1664,190 +830,43 @@ def handler(payload: dict) -> dict:
 **Pattern: Clear Phases**
 
 ```python
-def handler(payload: dict) -> dict:
-    # Phase 1: Validation and setup
-    if not validate_inputs(payload):
-        return {"success": False, "error": "Invalid inputs"}
-    
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    # Phase 1: Open browser
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
+
     # Phase 2: Authentication
-    if not authenticate(payload):
-        return {"success": False, "error": "Authentication failed"}
-    
+    auth_result = authenticate(agent, computer, params)
+    if not auth_result:
+        return Result(success=False, error="Authentication failed")
+
     # Phase 3: Main workflow logic
-    result = execute_main_workflow(payload)
-    if not result["success"]:
-        return result
-    
-    # Phase 4: Data extraction
-    data = extract_data()
-    
-    # Phase 5: Cleanup and return
-    return {
-        "success": True,
-        "data": data
-    }
+    data = extract_data(agent)
 
-def validate_inputs(payload: dict) -> bool:
-    # Input validation logic
-    pass
+    # Phase 4: Return results
+    return Result(success=True, data=data)
 
-def authenticate(payload: dict) -> bool:
-    # Authentication logic
-    pass
 
-def execute_main_workflow(payload: dict) -> dict:
-    # Main logic
-    pass
-
-def extract_data() -> dict:
-    # Extraction logic
-    pass
-```
-
-**Pattern: Reusable Functions**
-
-```python
-def open_browser_and_navigate(url: str) -> bool:
-    """Reusable browser opening function."""
-    try:
-        agent("Click the Chromium browser icon in the taskbar")
-        if not validate("Is the Chromium browser open?", timeout=10):
-            return False
-        
-        agent(f"Navigate to {url}")
-        if not validate(f"Is {url} loaded?", timeout=20):
-            return False
-        
-        return True
-    except WorkflowError:
+def authenticate(agent, computer, params):
+    agent.execute(f"Navigate to {params.login_url}")
+    if not agent.verify("Is the login form visible?", timeout=20):
         return False
+    agent.execute("Click the username or email field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(params.username)
+    # ...
+    return agent.verify("Is the dashboard visible?", timeout=20)
 
 
-def handler(payload: dict) -> dict:
-    url = payload.get("WEBSITE_URL", "https://example.com")
-    
-    if not open_browser_and_navigate(url):
-        return {"success": False, "error": "Failed to open browser"}
-    
-    # Continue with workflow...
-```
-
-### Clear Variable Naming
-
-**Good Names:**
-
-```python
-# Descriptive and specific
-patient_name = payload.get("PATIENT_NAME")
-appointment_date = payload.get("APPOINTMENT_DATE")
-max_retry_attempts = payload.get("MAX_RETRIES", 3)
-
-# Boolean flags - use is/has/should prefix
-is_verbose = payload.get("VERBOSE", False)
-has_attachments = payload.get("INCLUDE_ATTACHMENTS", True)
-should_verify = payload.get("VERIFY_DATA", True)
-
-# Collections - plural names
-patient_names = extract("Get all patient names", schema=schema)
-error_messages = []
-downloaded_files = []
-```
-
-**Bad Names:**
-
-```python
-# Too short or cryptic
-pn = payload.get("PATIENT_NAME")  # ❌
-d = payload.get("DATE")  # ❌
-x = extract("Get data", schema=schema)  # ❌
-
-# Misleading
-data = True  # ❌ Boolean, not data
-count = "patient_name"  # ❌ String, not count
-```
-
-### Validation Checkpoints
-
-**Critical Validation Points:**
-
-```python
-def handler(payload: dict) -> dict:
-    # 1. After navigation
-    agent("Navigate to dashboard")
-    if not validate("Is the dashboard page visible?"):
-        return {"success": False, "error": "Navigation failed"}
-    
-    # 2. Before data operations
-    if not validate("Is the patient table visible?"):
-        return {"success": False, "error": "Patient table not found"}
-    
-    # Extract data only after confirming it exists
-    patients = extract("Get patient list", schema=schema)
-    
-    # 3. After critical actions
-    agent("Click save")
-    if not validate("Is there a success message?"):
-        if validate("Is there an error message?"):
-            return {"success": False, "error": "Save failed with error"}
-        return {"success": False, "error": "Save result unclear"}
-    
-    # 4. Before returning final results
-    if not patients:
-        return {"success": False, "error": "No patients found"}
-    
-    return {"success": True, "patients": patients}
-```
-
-### Error Handling Patterns
-
-**Pattern: Early Returns**
-
-```python
-def handler(payload: dict) -> dict:
-    # Validate inputs first
-    if "PATIENT_NAME" not in payload:
-        return {"success": False, "error": "PATIENT_NAME required"}
-    
-    # Try authentication
-    if not authenticate():
-        return {"success": False, "error": "Authentication failed"}
-    
-    # Try main workflow
-    result = process_patient(payload["PATIENT_NAME"])
-    if not result["success"]:
-        return result
-    
-    # Success path
-    return {"success": True, "data": result["data"]}
-```
-
-**Pattern: Error Accumulation**
-
-```python
-def handler(payload: dict) -> dict:
-    errors = []
-    results = []
-    
-    patients = payload.get("PATIENTS", [])
-    
-    for patient in patients:
-        try:
-            data = process_patient(patient)
-            results.append({"patient": patient, "data": data})
-        except WorkflowError as e:
-            errors.append({"patient": patient, "error": str(e)})
-    
-    # Return partial results with errors
-    return {
-        "success": len(results) > 0,
-        "results": results,
-        "errors": errors,
-        "summary": {
-            "total": len(patients),
-            "succeeded": len(results),
-            "failed": len(errors)
-        }
-    }
+def extract_data(agent):
+    if not agent.verify("Is the data table visible?"):
+        return []
+    return agent.extract("Extract all rows", schema={...})
 ```
 
 ### Performance Considerations
@@ -1856,48 +875,35 @@ def handler(payload: dict) -> dict:
 
 ```python
 # BAD - Multiple VLM calls for same information
-agent("Find the submit button")
-validate("Is the submit button blue?")  # Redundant
-agent("Click the submit button")  # Already found it
+agent.execute("Find the submit button")
+agent.verify("Is the submit button blue?")  # Redundant
+agent.execute("Click the submit button")    # Already found it
 
 # GOOD - Combine operations
-agent("Click the blue submit button")
+agent.execute("Click the blue submit button")
 ```
 
 **2. Use Direct Control When Possible**
 
 ```python
-# Use agent() to find element once
-agent("Find and hover over the submit button")
+# Use agent to find element once
+agent.execute("Find and hover over the submit button")
 
 # If position is now known, use direct control
-mouse.click_at(500, 300)  # Faster than agent("Click submit")
+computer.mouse.click_at(500, 600)  # Faster than agent.execute("Click submit")
 ```
 
-**3. Batch Operations**
-
-```python
-# BAD - Multiple separate actions
-agent("Click field 1")
-keyboard.type("value 1")
-agent("Click field 2")
-keyboard.type("value 2")
-
-# GOOD - Describe complete sequence
-agent("Fill in field 1 with 'value 1' and field 2 with 'value 2'")
-```
-
-**4. Appropriate Timeouts**
+**3. Appropriate Timeouts**
 
 ```python
 # Short timeout for fast operations
-validate("Is button visible?", timeout=5)
+agent.verify("Is button visible?", timeout=5)
 
 # Longer timeout for page loads
-validate("Is dashboard loaded?", timeout=30)
+agent.verify("Is dashboard loaded?", timeout=30)
 
 # Very long for downloads
-validate("Has file downloaded?", timeout=120)
+agent.verify("Has file downloaded?", timeout=120)
 ```
 
 ---
@@ -1907,291 +913,249 @@ validate("Has file downloaded?", timeout=120)
 ### Pattern 1: Browser Automation
 
 ```python
-from nen.workflow import agent, validate, extract, keyboard
+from nen import Agent, Computer
+from pydantic import BaseModel, Field
 
-def handler(payload: dict) -> dict:
-    url = payload.get("WEBSITE_URL", "https://example.com")
-    
-    # Open browser and navigate
-    agent("Click the Chromium browser icon in the taskbar")
-    if not validate("Is the Chromium browser open?", timeout=10):
-        return {"success": False, "error": "Failed to open browser"}
-    
-    agent(f"Navigate to {url}")
-    if not validate(f"Is {url} loaded?", timeout=20):
-        return {"success": False, "error": "Failed to load website"}
-    
-    # Interact with page
-    agent("Click the search box and type 'example query'")
-    keyboard.press("Return")
-    
-    # Wait for results
-    if not validate("Are search results visible?", timeout=15):
-        return {"success": False, "error": "No search results"}
-    
-    # Extract data
-    results = extract(
+
+class Params(BaseModel):
+    website_url: str = Field(default="https://example.com", min_length=1)
+
+
+class Result(BaseModel):
+    success: bool
+    results: list[str] = []
+    error: str | None = None
+
+
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
+
+    agent.execute(f"Navigate to {params.website_url}")
+    if not agent.verify("Is the website loaded?", timeout=20):
+        return Result(success=False, error="Failed to load website")
+
+    agent.execute("Click the search box and type 'example query'")
+    computer.keyboard.press("Return")
+
+    if not agent.verify("Are search results visible?", timeout=15):
+        return Result(success=False, error="No search results")
+
+    results = agent.extract(
         "Extract the titles of the first 5 search results",
-        schema={
-            "type": "array",
-            "items": {"type": "string"}
-        }
+        schema={"type": "array", "items": {"type": "string"}}
     )
-    
-    return {
-        "success": True,
-        "results": results
-    }
+
+    return Result(success=True, results=results)
 ```
 
 ### Pattern 2: Form Filling
 
 ```python
-from nen.workflow import agent, validate, keyboard
+from nen import Agent, Computer
+from pydantic import BaseModel, Field
 
-def handler(payload: dict) -> dict:
-    # Get form data from payload
-    form_data = {
-        "name": payload.get("NAME"),
-        "email": payload.get("EMAIL"),
-        "phone": payload.get("PHONE"),
-        "message": payload.get("MESSAGE")
-    }
-    
-    # Navigate to form
-    agent("Navigate to the contact form")
-    if not validate("Is the contact form visible?"):
-        return {"success": False, "error": "Form not found"}
-    
-    # Fill each field
-    for field_name, value in form_data.items():
-        if value:  # Only fill if value provided
-            agent(f"Click the {field_name} field")
-            keyboard.type(value)
-    
-    # Submit form
-    agent("Click the submit button")
-    
-    # Verify submission
-    if validate("Is there a success message?", timeout=10):
-        return {"success": True, "message": "Form submitted successfully"}
-    elif validate("Is there an error message?"):
-        error = extract(
+
+class Params(BaseModel):
+    name: str = Field(min_length=1)
+    email: str = Field(min_length=1)
+    message: str = Field(default="")
+
+
+class Result(BaseModel):
+    success: bool
+    error: str | None = None
+
+
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
+
+    agent.execute("Navigate to the contact form")
+    if not agent.verify("Is the contact form visible?"):
+        return Result(success=False, error="Form not found")
+
+    agent.execute("Click the name field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(params.name)
+
+    agent.execute("Click the email field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(params.email)
+
+    if params.message:
+        agent.execute("Click the message field")
+        computer.keyboard.hotkey("ctrl", "a")
+        computer.keyboard.press("BackSpace")
+        computer.keyboard.type(params.message)
+
+    agent.execute("Click the submit button")
+
+    if agent.verify("Is there a success message?", timeout=10):
+        return Result(success=True)
+    elif agent.verify("Is there an error message?"):
+        error_data = agent.extract(
             "What is the error message?",
             schema={"type": "object", "properties": {"error": {"type": "string"}}}
         )
-        return {"success": False, "error": error.get("error", "Unknown error")}
+        return Result(success=False, error=error_data.get("error", "Unknown error"))
     else:
-        return {"success": False, "error": "Submission status unclear"}
+        return Result(success=False, error="Submission status unclear")
 ```
 
 ### Pattern 3: Data Extraction
 
 ```python
-from nen.workflow import agent, validate, extract
+from nen import Agent, Computer
+from pydantic import BaseModel, Field
 
-def handler(payload: dict) -> dict:
-    # Navigate to data source
-    agent("Navigate to the patients page")
-    if not validate("Is the patients table visible?"):
-        return {"success": False, "error": "Patients table not found"}
-    
-    # Define extraction schema
-    schema = {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "mrn": {"type": "string"},
-                "dob": {"type": "string"},
-                "last_visit": {"type": "string"}
-            },
-            "required": ["name", "mrn"]
+
+class Params(BaseModel):
+    target_url: str = Field(min_length=1)
+
+
+class Result(BaseModel):
+    success: bool
+    total_patients: int = 0
+    patients: list[dict] = []
+    error: str | None = None
+
+
+def run(params: Params) -> Result:
+    agent = Agent()
+    computer = Computer()
+
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
+
+    agent.execute(f"Navigate to {params.target_url}")
+    if not agent.verify("Is the patients table visible?", timeout=20):
+        return Result(success=False, error="Patients table not found")
+
+    patients = agent.extract(
+        "Extract all patient information from the table",
+        schema={
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "mrn": {"type": "string"},
+                    "dob": {"type": "string"},
+                    "last_visit": {"type": "string"}
+                },
+                "required": ["name", "mrn"]
+            }
         }
-    }
-    
-    # Extract data
-    patients = extract(
-        "Extract all patient information from the table including name, MRN, date of birth, and last visit",
-        schema=schema
     )
-    
-    # Validate results
+
     if not patients:
-        return {"success": False, "error": "No patients found"}
-    
-    # Filter or process data
-    recent_patients = [
-        p for p in patients 
-        if p.get("last_visit") and "2026" in p["last_visit"]
-    ]
-    
-    return {
-        "success": True,
-        "total_patients": len(patients),
-        "recent_patients": len(recent_patients),
-        "patients": patients
-    }
+        return Result(success=False, error="No patients found")
+
+    return Result(success=True, total_patients=len(patients), patients=patients)
 ```
 
-### Pattern 4: Multi-Step Workflow with Validation
+### Pattern 4: Login with Secure Password
 
 ```python
-from nen.workflow import agent, validate, extract, WorkflowError
-import logging
-
-def handler(payload: dict) -> dict:
-    patient_name = payload.get("PATIENT_NAME")
-    if not patient_name:
-        return {"success": False, "error": "PATIENT_NAME required"}
-    
-    # Step 1: Login
-    logging.info("Step 1: Authenticating")
-    if not login(payload):
-        return {"success": False, "error": "Authentication failed"}
-    
-    # Step 2: Search for patient
-    logging.info("Step 2: Searching for patient", extra={"patient": patient_name})
-    if not search_patient(patient_name):
-        return {"success": False, "error": f"Patient {patient_name} not found"}
-    
-    # Step 3: Open patient record
-    logging.info("Step 3: Opening patient record")
-    if not open_patient_record():
-        return {"success": False, "error": "Failed to open patient record"}
-    
-    # Step 4: Extract data
-    logging.info("Step 4: Extracting patient data")
-    try:
-        data = extract_patient_data()
-    except WorkflowError as e:
-        return {"success": False, "error": f"Data extraction failed: {e}"}
-    
-    # Step 5: Download documents
-    logging.info("Step 5: Downloading documents")
-    files = download_documents()
-    
-    logging.info("Workflow completed successfully")
-    return {
-        "success": True,
-        "patient_data": data,
-        "documents_downloaded": files
-    }
+from nen import Agent, Computer, Secure
+from pydantic import BaseModel, Field
 
 
-def login(payload: dict) -> bool:
-    """Authenticate to the system."""
-    agent("Navigate to login page")
-    if not validate("Is the login form visible?"):
-        return False
-    
-    username = payload.get("USERNAME")
-    password = payload.get("PASSWORD")
-    
-    agent(f"Enter username '{username}'")
-    agent("Enter password")  # Don't log password
-    keyboard.type(password, interval=0.01)
-    agent("Click login")
-    
-    return validate("Is the dashboard visible?", timeout=15)
+class Params(BaseModel):
+    login_url: str = Field(min_length=1)
+    username: str = Field(min_length=1)
 
 
-def search_patient(name: str) -> bool:
-    """Search for patient by name."""
-    agent("Click the search box")
-    keyboard.type(name)
-    keyboard.press("Return")
-    return validate(f"Are search results for '{name}' visible?", timeout=10)
+class SecureParams(BaseModel):
+    password: Secure[str] = Field(min_length=1)
 
 
-def open_patient_record() -> bool:
-    """Open the patient record."""
-    agent("Click the first search result")
-    return validate("Is the patient record displayed?", timeout=10)
+class Result(BaseModel):
+    success: bool
+    error: str | None = None
 
 
-def extract_patient_data() -> dict:
-    """Extract patient data from the record."""
-    schema = {
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "mrn": {"type": "string"},
-            "dob": {"type": "string"},
-            "allergies": {"type": "array", "items": {"type": "string"}}
-        },
-        "required": ["name", "mrn", "dob"]
-    }
-    return extract("Extract patient information from the record", schema=schema)
+def run(params: Params, secure_params: SecureParams) -> Result:
+    agent = Agent()
+    computer = Computer()
 
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
 
-def download_documents() -> int:
-    """Download patient documents."""
-    agent("Click the Documents tab")
-    if not validate("Are documents listed?"):
-        return 0
-    
-    agent("Download all documents listed")
-    # Return count or handle individual downloads
-    return 1  # Simplified
+    agent.execute(f"Navigate to {params.login_url}")
+    if not agent.verify("Is the login form visible?", timeout=20):
+        return Result(success=False, error="Login page not found")
+
+    agent.execute("Click the username or email field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(params.username)
+
+    agent.execute("Click the password field")
+    computer.keyboard.hotkey("ctrl", "a")
+    computer.keyboard.press("BackSpace")
+    computer.keyboard.type(secure_params.password, interval=0.01)
+
+    computer.keyboard.press("Return")
+
+    if agent.verify("Are we still on the login page?", timeout=10):
+        return Result(success=False, error="Login failed - still on login page")
+    elif agent.verify("Is there an error message visible?"):
+        return Result(success=False, error="Login failed - error message displayed")
+    elif agent.verify("Is the dashboard visible?", timeout=20):
+        return Result(success=True)
+    else:
+        return Result(success=False, error="Unable to verify login state")
 ```
 
 ---
 
 ## For AI Agents: Programmatic Workflow Authoring
 
-This section provides guidance for AI agents (like NenAI MCP) that programmatically generate workflow code.
+This section provides guidance for AI agents that programmatically generate workflow code.
 
 ### Guidelines for Generating Workflow Code
 
 **1. Always Include Docstrings**
 
 ```python
-def handler(payload: dict) -> dict:
-    """
-    Workflow: Patient Records Download
-    
-    Downloads patient medical records from the EHR system.
-    
-    Required payload fields:
-        - PATIENT_NAME: str - Patient's full name
-        - USERNAME: str - Login username
-        - PASSWORD: str - Login password
-    
-    Optional payload fields:
-        - INCLUDE_ATTACHMENTS: bool - Include document attachments (default: True)
-    
-    Returns:
-        dict with:
-            - success: bool
-            - patient_data: dict (if successful)
-            - files_downloaded: int (if successful)
-            - error: str (if failed)
-    """
+"""
+Workflow: Patient Records Download
+
+Downloads patient medical records from the EHR system.
+"""
 ```
 
-**2. Validate Inputs Early**
+**2. Use Typed Pydantic Models**
 
 ```python
-def handler(payload: dict) -> dict:
-    # Validate required fields
-    required = ["PATIENT_NAME", "USERNAME", "PASSWORD"]
-    missing = [f for f in required if f not in payload]
-    if missing:
-        return {
-            "success": False,
-            "error": f"Missing required fields: {', '.join(missing)}"
-        }
-    
-    # Validate types
-    if not isinstance(payload["PATIENT_NAME"], str):
-        return {
-            "success": False,
-            "error": "PATIENT_NAME must be a string"
-        }
-    
-    # Continue with workflow...
+class Params(BaseModel):
+    """Input parameters — validated before run() is called."""
+    patient_name: str = Field(min_length=1)
+    username: str = Field(min_length=1)
+
+class SecureParams(BaseModel):
+    """Sensitive parameters — values are never exposed in the sandbox."""
+    password: Secure[str] = Field(min_length=1)
+
+class Result(BaseModel):
+    """Output returned by this workflow."""
+    success: bool
+    data: dict | None = None
+    error: str | None = None
 ```
 
 **3. Use Structured Logging**
@@ -2199,18 +1163,11 @@ def handler(payload: dict) -> dict:
 ```python
 import logging
 
-def handler(payload: dict) -> dict:
+def run(params: Params) -> Result:
     logging.info("Workflow started", extra={
         "workflow": "patient_records_download",
         "version": "1.0.0",
-        "patient_name": payload.get("PATIENT_NAME")
-    })
-    
-    # ... workflow steps ...
-    
-    logging.info("Workflow completed", extra={
-        "success": True,
-        "duration_seconds": 45.2
+        "patient_name": params.patient_name
     })
 ```
 
@@ -2218,252 +1175,13 @@ def handler(payload: dict) -> dict:
 
 ```python
 # BAD
-return {"success": False, "error": "Failed"}
+return Result(success=False, error="Failed")
 
 # GOOD
-return {
-    "success": False,
-    "error": "Patient record not found",
-    "details": {
-        "patient_name": patient_name,
-        "search_results": 0,
-        "suggestion": "Verify patient name spelling"
-    }
-}
-```
-
-### Variable Naming Conventions for Generated Code
-
-**Payload Variables: UPPER_CASE**
-
-```python
-# Input variables from payload
-PATIENT_NAME = payload.get("PATIENT_NAME")
-WEBSITE_URL = payload.get("WEBSITE_URL")
-MAX_RETRIES = payload.get("MAX_RETRIES", 3)
-```
-
-**Local Variables: snake_case**
-
-```python
-# Workflow logic variables
-patient_data = extract_patient_info()
-is_logged_in = validate("Is dashboard visible?")
-download_count = 0
-```
-
-**Functions: snake_case**
-
-```python
-def authenticate_user(username: str, password: str) -> bool:
-    """Authenticate to the system."""
-    pass
-
-def extract_patient_data(patient_name: str) -> dict:
-    """Extract data for specific patient."""
-    pass
-```
-
-**Constants: UPPER_CASE**
-
-```python
-DEFAULT_TIMEOUT = 30
-MAX_RETRY_ATTEMPTS = 3
-LOGIN_URL = "https://example.com/login"
-```
-
-### Error Handling Strategies for Robustness
-
-**Strategy 1: Checkpoint Pattern**
-
-```python
-def handler(payload: dict) -> dict:
-    checkpoints = {
-        "input_validation": False,
-        "authentication": False,
-        "navigation": False,
-        "data_extraction": False
-    }
-    
-    try:
-        # Input validation
-        validate_inputs(payload)
-        checkpoints["input_validation"] = True
-        
-        # Authentication
-        authenticate(payload)
-        checkpoints["authentication"] = True
-        
-        # Navigation
-        navigate_to_target()
-        checkpoints["navigation"] = True
-        
-        # Data extraction
-        data = extract_data()
-        checkpoints["data_extraction"] = True
-        
-        return {"success": True, "data": data}
-        
-    except WorkflowError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "checkpoints_completed": checkpoints,
-            "failed_at": next(
-                (k for k, v in checkpoints.items() if not v),
-                "unknown"
-            )
-        }
-```
-
-**Strategy 2: Retry with Fallback**
-
-```python
-from nen.workflow import agent, WorkflowError
-import time
-
-def click_element_with_retry(description: str, max_attempts: int = 3) -> bool:
-    """Click element with retry and fallback strategies."""
-    
-    # Attempt 1: Direct description
-    for attempt in range(max_attempts):
-        try:
-            agent(description)
-            return True
-        except WorkflowError:
-            if attempt < max_attempts - 1:
-                time.sleep(2)
-                continue
-    
-    # Attempt 2: Broader description
-    try:
-        agent(description.replace("blue", "").replace("large", ""))
-        return True
-    except WorkflowError:
-        pass
-    
-    # Attempt 3: Alternative method
-    try:
-        agent("Find and click any submit button")
-        return True
-    except WorkflowError:
-        return False
-```
-
-**Strategy 3: Partial Success Handling**
-
-```python
-def handler(payload: dict) -> dict:
-    """Handle workflows that may partially succeed."""
-    
-    results = {"successful": [], "failed": []}
-    items = payload.get("ITEMS", [])
-    
-    for item in items:
-        try:
-            result = process_item(item)
-            results["successful"].append({
-                "item": item,
-                "result": result
-            })
-        except WorkflowError as e:
-            results["failed"].append({
-                "item": item,
-                "error": str(e)
-            })
-    
-    # Determine overall success
-    success = len(results["successful"]) > 0
-    
-    return {
-        "success": success,
-        "results": results,
-        "summary": {
-            "total": len(items),
-            "successful": len(results["successful"]),
-            "failed": len(results["failed"])
-        }
-    }
-```
-
-### Testing and Validation Approaches
-
-**1. Input Validation Function**
-
-```python
-def validate_payload(payload: dict) -> tuple[bool, str]:
-    """
-    Validate workflow payload.
-    
-    Returns:
-        (is_valid, error_message) tuple
-    """
-    # Check required fields
-    required = ["PATIENT_NAME", "USERNAME", "PASSWORD"]
-    for field in required:
-        if field not in payload:
-            return False, f"Missing required field: {field}"
-        if not payload[field]:
-            return False, f"Field {field} cannot be empty"
-    
-    # Type checking
-    if not isinstance(payload["PATIENT_NAME"], str):
-        return False, "PATIENT_NAME must be a string"
-    
-    # Value validation
-    if len(payload["PASSWORD"]) < 8:
-        return False, "PASSWORD must be at least 8 characters"
-    
-    return True, ""
-
-
-def handler(payload: dict) -> dict:
-    is_valid, error = validate_payload(payload)
-    if not is_valid:
-        return {"success": False, "error": error}
-    
-    # Continue with validated payload...
-```
-
-**2. Dry Run Mode**
-
-```python
-def handler(payload: dict) -> dict:
-    dry_run = payload.get("DRY_RUN", False)
-    
-    if dry_run:
-        # Validate workflow logic without executing
-        return {
-            "success": True,
-            "dry_run": True,
-            "steps": [
-                "Authenticate to system",
-                "Navigate to patients page",
-                "Search for patient",
-                "Extract patient data",
-                "Download documents"
-            ],
-            "required_payload": ["PATIENT_NAME", "USERNAME", "PASSWORD"],
-            "optional_payload": ["INCLUDE_ATTACHMENTS"]
-        }
-    
-    # Normal execution...
-```
-
-**3. Validation Checkpoints**
-
-```python
-def handler(payload: dict) -> dict:
-    # Add validation after each major step
-    agent("Navigate to dashboard")
-    if not validate("Is dashboard visible?"):
-        return {"success": False, "error": "Navigation failed", "step": "navigate"}
-    
-    agent("Click patients tab")
-    if not validate("Is patients page visible?"):
-        return {"success": False, "error": "Failed to open patients", "step": "patients"}
-    
-    # ... continue with validated state
+return Result(
+    success=False,
+    error=f"Patient record not found for '{params.patient_name}'"
+)
 ```
 
 ### Common Pitfalls When Generating Workflows
@@ -2472,132 +1190,80 @@ def handler(payload: dict) -> dict:
 
 ```python
 # BAD - Excessive VLM calls
-agent("Find the submit button")
-validate("Is the submit button visible?")  # Redundant
-validate("Is the submit button blue?")  # Redundant
-agent("Click the submit button")  # Already found it
+agent.execute("Find the submit button")
+agent.verify("Is the submit button visible?")  # Redundant
+agent.execute("Click the submit button")        # Already found it
 
 # GOOD - Combine operations
-agent("Click the blue submit button")
-if not validate("Did submission succeed?"):
-    return {"success": False, "error": "Submission failed"}
+agent.execute("Click the blue submit button")
+if not agent.verify("Did submission succeed?"):
+    return Result(success=False, error="Submission failed")
 ```
 
 **Pitfall 2: Vague Descriptions**
 
 ```python
 # BAD - Too vague
-agent("Click it")
-agent("Do the thing")
-validate("Is it done?")
+agent.execute("Click it")
+agent.verify("Is it done?")
 
 # GOOD - Specific and clear
-agent("Click the blue 'Submit' button in the bottom right")
-validate("Is there a success message saying 'Form submitted'?")
+agent.execute("Click the blue 'Submit' button in the bottom right")
+agent.verify("Is there a success message saying 'Form submitted'?")
 ```
 
 **Pitfall 3: Not Handling Async Operations**
 
 ```python
 # BAD - Assumes instant response
-agent("Click submit")
-data = extract("Get confirmation number", schema=schema)  # May fail
+agent.execute("Click submit")
+data = agent.extract("Get confirmation number", schema=schema)  # May fail
 
 # GOOD - Wait for async operation
-agent("Click submit")
-if not validate("Is confirmation page visible?", timeout=20):
-    return {"success": False, "error": "Submission timed out"}
-data = extract("Get confirmation number", schema=schema)
+agent.execute("Click submit")
+if not agent.verify("Is confirmation page visible?", timeout=20):
+    return Result(success=False, error="Submission timed out")
+data = agent.extract("Get confirmation number", schema=schema)
 ```
 
-**Pitfall 4: Missing Error Recovery**
+**Pitfall 4: Using macOS Keyboard Commands**
 
 ```python
-# BAD - No error handling
-agent("Login to system")
-agent("Navigate to patients")
-agent("Extract data")
+# BAD - Crashes on Linux
+computer.keyboard.hotkey("command", "a")
 
-# GOOD - Error handling at each step
-try:
-    agent("Login to system")
-except WorkflowError:
-    return {"success": False, "error": "Login failed"}
-
-if not validate("Is dashboard visible?"):
-    return {"success": False, "error": "Login validation failed"}
-
-try:
-    agent("Navigate to patients")
-except WorkflowError:
-    return {"success": False, "error": "Navigation failed"}
+# GOOD - Linux-compatible
+computer.keyboard.hotkey("ctrl", "a")
 ```
 
-**Pitfall 5: Logging Sensitive Data**
+**Pitfall 5: Not Clearing Input Fields**
+
+```python
+# BAD - May concatenate with existing content
+agent.execute("Click email field")
+computer.keyboard.type(params.email)
+
+# GOOD - Clear first
+agent.execute("Click email field")
+computer.keyboard.hotkey("ctrl", "a")
+computer.keyboard.press("BackSpace")
+computer.keyboard.type(params.email)
+```
+
+**Pitfall 6: Logging Sensitive Data**
 
 ```python
 # BAD - Logs password
-password = payload.get("PASSWORD")
-print(f"Using password: {password}")  # ❌ Security issue
+print(f"Using password: {secure_params.password}")  # ❌ Security issue
 
 # GOOD - Redact sensitive data
-import logging
 logging.info("Authenticating", extra={
-    "username": payload.get("USERNAME"),
+    "username": params.username,
     "password": "***REDACTED***"
 })
 ```
 
-**Pitfall 6: Not Providing Defaults**
-
-```python
-# BAD - No defaults for optional fields
-timeout = payload["TIMEOUT"]  # Crashes if not provided
-
-# GOOD - Provide sensible defaults
-timeout = payload.get("TIMEOUT", 30)
-include_attachments = payload.get("INCLUDE_ATTACHMENTS", True)
-```
-
-**Pitfall 7: Complex Single-Step Operations**
-
-```python
-# BAD - Too complex for one step
-agent("Login, navigate to patients, search for John Doe, open his record, and download all documents")
-
-# GOOD - Break into logical steps
-agent("Login to the system")
-validate("Is dashboard visible?")
-
-agent("Navigate to patients page")
-validate("Is patients page visible?")
-
-agent("Search for patient 'John Doe'")
-validate("Are search results visible?")
-
-agent("Click the first search result")
-validate("Is patient record open?")
-
-agent("Download all documents")
-```
-
 ---
 
-## Additional Resources
-
-**Related Documentation:**
-- SDK API Reference: `python/nen/workflow/README.md`
-- Workflow Publishing: `docs/guides/WORKFLOW_PUBLISHING.md`
-- Quick Reference: `docs/workflows/WORKFLOW_REFERENCE.md`
-
-**Example Workflows:**
-- Demo Workflow: `workflows/demo/sdk-primitives-test/workflow.py`
-
-**Support:**
-- For workflow execution issues, check log files: `workflow-log.jsonl` and `system-log.jsonl`
-- For SDK bugs or feature requests, contact the CUP development team
-
----
-
-**Last Updated:** 2026-02-04  
-**Version:** 1.0.0
+**Last Updated:** 2026-02-26
+**Version:** 2.0.0

@@ -1,0 +1,67 @@
+---
+description: "Error handling conventions for NenAI workflow.py files — when to raise vs return Result(success=False)"
+globs: workflows/**/*.py
+alwaysApply: false
+---
+
+# Workflow Error Handling Conventions
+
+Use the right error mechanism based on whether a failure is **recoverable** or **unrecoverable**.
+
+## The Rule
+
+| Condition | Pattern |
+|-----------|---------|
+| Unrecoverable — environment broken, precondition not met, external service unreachable | `raise RuntimeError("...")` |
+| Expected failure — wrong password, item not found, business logic failed | `return Result(success=False, error="...")` |
+
+## ✅ Unrecoverable → raise
+
+```python
+# Browser won't open — nothing can proceed
+if not agent.verify("Is the Chromium browser open?", timeout=10):
+    raise RuntimeError("Failed to open Chromium browser")
+
+# Site is unreachable
+if not agent.verify("Is the page loaded?", timeout=20):
+    raise RuntimeError(f"Failed to load {params.url}")
+
+# Extraction returned nothing useful
+instructions = data.get("instructions")
+if not instructions:
+    raise ValueError("Extraction returned no content — page may be unexpected")
+```
+
+## ✅ Expected failure → return Result
+
+```python
+# Wrong password — meaningful outcome the caller can act on
+if agent.verify("Is the password prompt still visible?", timeout=10):
+    return Result(success=False, error="Login failed — password may be incorrect")
+
+# Item not found in the UI — valid workflow outcome
+if not agent.verify("Is the confirmation message visible?", timeout=15):
+    return Result(success=False, error="Could not find confirmation after submission")
+```
+
+## ❌ Wrong — raising for expected outcomes
+
+```python
+# Don't raise for wrong passwords or missing UI elements that are valid workflow results
+if agent.verify("Is the password prompt still visible?"):
+    raise RuntimeError("Login failed")  # ❌ should be Result(success=False)
+```
+
+## ❌ Wrong — returning Result for unrecoverable failures
+
+```python
+# Don't silently succeed a run when the environment is broken
+if not agent.verify("Is the Chromium browser open?", timeout=10):
+    return Result(success=False, error="Failed to open browser")  # ❌ should raise
+```
+
+## Key Principle
+
+> Raise when the workflow **cannot meaningfully continue**. Return `Result(success=False)` when the workflow **ran correctly but the outcome was negative**.
+
+Unhandled exceptions propagate as hard failures — the orchestrator surfaces the message to the caller. Use this intentionally for broken preconditions.

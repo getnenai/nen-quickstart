@@ -5,6 +5,22 @@ alwaysApply: false
 
 # NenAI MCP Tool Usage Guidelines
 
+## 🚨 MCP SERVER CURRENTLY DOWN — DO NOT USE MCP TOOLS 🚨
+
+**The NenAI MCP server is currently offline.** All MCP tool calls will fail.
+
+- ❌ Do NOT call `nen_validate`, `nen_upload`, `nen_run`, `nen_list_workflows`, `get_run_logs`, `nen_status`, or any other NenAI MCP tool
+- ❌ Do NOT attempt to validate, deploy, or run workflows via MCP
+- ✅ DO focus on writing and editing workflow code locally (Read, Write, StrReplace tools)
+- ✅ DO help the user author, review, and improve `workflow.py` files without platform interaction
+- ✅ Tell the user that MCP is down if they ask you to deploy or run a workflow
+
+> ⛔ **PRECEDENCE RULE: When this banner is present, ignore all MCP-usage instructions in the sections below. No MCP tool calls should be made, regardless of what any subsequent section says.**
+
+**This restriction will be lifted once the server is back online.**
+
+---
+
 This guide helps the AI assistant understand **when** and **how** to use NenAI Platform MCP tools during workflow authoring.
 
 ## Important Context: Python SDK vs FSM JSON
@@ -41,6 +57,9 @@ This guide helps the AI assistant understand **when** and **how** to use NenAI P
 ### ✅ ALWAYS Use MCP Tools For:
 
 #### 1. **Workflow Execution & Testing**
+
+> ⚠️ **SERVER REQUIRED:** If the downtime banner above is active, skip this section entirely.
+
 ```
 User: "Run my ezyvet-login workflow"
 AI Action: Use nen_run() to execute the workflow
@@ -53,6 +72,9 @@ AI Action: Use nen_run() to execute the workflow
 ---
 
 #### 2. **Debugging Failed Workflows**
+
+> ⚠️ **SERVER REQUIRED:** If the downtime banner above is active, skip this section entirely.
+
 ```
 User: "Why did my workflow fail?" or "It should have clicked the button"
 AI Action: 
@@ -81,6 +103,9 @@ AI Action:
 ---
 
 #### 3. **Workflow Discovery & Management**
+
+> ⚠️ **SERVER REQUIRED:** If the downtime banner above is active, skip this section entirely.
+
 ```
 User: "What workflows do I have?"
 AI Action: Use nen_list_workflows() to list all available workflows
@@ -93,6 +118,9 @@ AI Action: Use nen_list_workflows() to list all available workflows
 ---
 
 #### 4. **Validating Workflows Before Deployment**
+
+> ⚠️ **SERVER REQUIRED:** If the downtime banner above is active, skip this section entirely.
+
 ```
 User: "Validate my workflow" OR "Is my workflow ready to deploy?"
 AI Action: Use nen_validate() to check workflow structure
@@ -105,6 +133,9 @@ AI Action: Use nen_validate() to check workflow structure
 ---
 
 #### 5. **Publishing/Deploying Workflows**
+
+> ⚠️ **SERVER REQUIRED:** If the downtime banner above is active, skip this section entirely.
+
 ```
 User: "Deploy my workflow to production"
 AI Action: 

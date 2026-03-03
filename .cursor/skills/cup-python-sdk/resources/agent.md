@@ -45,11 +45,9 @@ agent.execute(f"Navigate to {params.website}")
 # Click a specific element
 agent.execute("Click the blue 'Submit' button in the bottom right of the form")
 
-# Fill a field (clear first, then type with Computer)
+# Fill a field (just type directly with Computer)
 agent.execute("Click the email field")
-computer.keyboard.hotkey("ctrl", "a")
-computer.keyboard.press("BackSpace")
-computer.keyboard.type(params.email)
+computer.type(params.email)
 
 # Dismiss popups
 agent.execute("Close any welcome messages, popups, or dialogs if they appear", max_iterations=5)

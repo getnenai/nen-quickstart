@@ -576,10 +576,10 @@ computer.keyboard.press("Escape")
 computer.keyboard.press("BackSpace")
 
 # Keyboard shortcuts (Linux key names!)
-computer.keyboard.hotkey("ctrl", "a")          # select all
-computer.keyboard.hotkey("ctrl", "c")          # copy
-computer.keyboard.hotkey("ctrl", "v")          # paste
-computer.keyboard.hotkey("ctrl", "shift", "s") # save as
+agent.execute("Select all text using keyboard shortcut")          # select all
+agent.execute("Copy using keyboard shortcut")          # copy
+agent.execute("Paste using keyboard shortcut")          # paste
+agent.execute("Save As using keyboard shortcut") # save as
 ```
 
 ### Mouse
@@ -628,20 +628,19 @@ def run(params: Params) -> Result:
 
 ### Returning Results from Workflow
 
+**Result models actual data, not success/failure envelope:**
+
 ```python
-# Minimal success
-return Result(success=True)
-
-# Failure with reason
-return Result(success=False, error="Error message")
-
-# Rich return data
+# Return actual data extracted
 return Result(
-    success=True,
-    data=[{"name": "John", "mrn": "12345"}],
-    count=1,
-    message="Found 1 patient record"
+    customer_name="John Doe",
+    account_id="12345",
+    balance=1500.00
 )
+
+# For failures, raise exceptions
+if not agent.verify("Is data visible?"):
+    raise RuntimeError("Data not found")
 ```
 
 ### Sensitive Data Handling
@@ -669,18 +668,18 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
 ## Error Handling
 
-### Return vs Raise
+### Raise for All Failures
 
-Return `Result(success=False, error="...")` — do **not** raise exceptions:
+**Use `raise` for ALL failures** — do NOT return Result(success=False):
 
 ```python
-# ✅ CORRECT — structured failure
+# ✅ CORRECT — raise for failures
 if not agent.verify("Is the page loaded?", timeout=20):
-    return Result(success=False, error="Page failed to load")
-
-# ❌ WRONG — do not raise exceptions
-if not agent.verify("Is the page loaded?"):
     raise RuntimeError("Page failed to load")
+
+# ❌ WRONG — do not return Result(success=False)
+if not agent.verify("Is the page loaded?"):
+    return Result(success=False, error="Page failed to load")
 ```
 
 ### Try/Except Patterns
@@ -856,9 +855,7 @@ def authenticate(agent, computer, params):
     if not agent.verify("Is the login form visible?", timeout=20):
         return False
     agent.execute("Click the username or email field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.username)
+    computer.type(params.username)
     # ...
     return agent.verify("Is the dashboard visible?", timeout=20)
 
@@ -984,20 +981,14 @@ def run(params: Params) -> Result:
         return Result(success=False, error="Form not found")
 
     agent.execute("Click the name field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.name)
+    computer.type(params.name)
 
     agent.execute("Click the email field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.email)
+    computer.type(params.email)
 
     if params.message:
         agent.execute("Click the message field")
-        computer.keyboard.hotkey("ctrl", "a")
-        computer.keyboard.press("BackSpace")
-        computer.keyboard.type(params.message)
+        computer.type(params.message)
 
     agent.execute("Click the submit button")
 
@@ -1100,12 +1091,12 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         return Result(success=False, error="Login page not found")
 
     agent.execute("Click the username or email field")
-    computer.keyboard.hotkey("ctrl", "a")
+    agent.execute("Select all text using keyboard shortcut")
     computer.keyboard.press("BackSpace")
     computer.keyboard.type(params.username)
 
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
+    agent.execute("Select all text using keyboard shortcut")
     computer.keyboard.press("BackSpace")
     computer.keyboard.type(secure_params.password, interval=0.01)
 
@@ -1230,10 +1221,10 @@ data = agent.extract("Get confirmation number", schema=schema)
 
 ```python
 # BAD - Crashes on Linux
-computer.keyboard.hotkey("command", "a")
+# DO NOT USE - computer.hotkey() is broken
 
 # GOOD - Linux-compatible
-computer.keyboard.hotkey("ctrl", "a")
+agent.execute("Select all text using keyboard shortcut")
 ```
 
 **Pitfall 5: Not Clearing Input Fields**
@@ -1245,7 +1236,7 @@ computer.keyboard.type(params.email)
 
 # GOOD - Clear first
 agent.execute("Click email field")
-computer.keyboard.hotkey("ctrl", "a")
+agent.execute("Select all text using keyboard shortcut")
 computer.keyboard.press("BackSpace")
 computer.keyboard.type(params.email)
 ```

@@ -14,7 +14,7 @@ Create a `Computer` instance inside your `run()` function:
 def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
-    # ... use computer.type/press/hotkey and computer.mouse
+    # ... use computer.type/press and computer.mouse
 ```
 
 ---

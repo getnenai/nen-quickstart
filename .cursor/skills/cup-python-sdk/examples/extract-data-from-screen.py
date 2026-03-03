@@ -11,10 +11,12 @@ from pydantic import BaseModel, Field
 
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     patient_name: str = Field(min_length=1)
 
 
 class Result(BaseModel):
+    """Output returned by this workflow."""
     demographics: dict | None = None
     visits: list[dict] = []
 

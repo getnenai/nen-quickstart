@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     patient_name: str = Field(min_length=1)
     system_a_url: str
     system_b_url: str
@@ -20,11 +21,13 @@ class Params(BaseModel):
 
 
 class SecureParams(BaseModel):
+    """Secure parameters for this workflow."""
     system_a_password: Secure[str] = Field(min_length=1, description="System A login password")
     system_b_password: Secure[str] = Field(min_length=1, description="System B login password")
 
 
 class Result(BaseModel):
+    """Output returned by this workflow."""
     success: bool
     patient: str | None = None
     error: str | None = None
@@ -35,27 +38,27 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     agent = Agent()
     computer = Computer()
 
-    # Open browser
+    # Open browser (UNRECOVERABLE if fails)
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
-    # Step 1: Login to System A and extract data
+    # Step 1: Login to System A and extract data (UNRECOVERABLE if fails)
     agent.execute(f"Navigate to {params.system_a_url}")
     if not agent.verify("Is System A login page visible?", timeout=20):
-        return Result(success=False, error="Could not reach System A")
+        raise RuntimeError(f"Could not reach System A at {params.system_a_url}")
 
     agent.execute("Click the username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.system_a_username)
+    agent.execute("Select all text in the field using keyboard shortcut")
+    computer.press("BackSpace")
+    computer.type(params.system_a_username)
 
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.system_a_password, interval=0.01)
+    agent.execute("Select all text in the field using keyboard shortcut")
+    computer.press("BackSpace")
+    computer.type(secure_params.system_a_password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if not agent.verify("Is System A dashboard visible?", timeout=20):
         return Result(success=False, error="System A login failed")
@@ -86,16 +89,16 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         return Result(success=False, error="Could not reach System B")
 
     agent.execute("Click the username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.system_b_username)
+    agent.execute("Select all text in the field using keyboard shortcut")
+    computer.press("BackSpace")
+    computer.type(params.system_b_username)
 
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.system_b_password, interval=0.01)
+    agent.execute("Select all text in the field using keyboard shortcut")
+    computer.press("BackSpace")
+    computer.type(secure_params.system_b_password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if not agent.verify("Is System B main window visible?", timeout=20):
         return Result(success=False, error="System B login failed")

@@ -24,8 +24,7 @@ class SecureParams(BaseModel):
 
 class Result(BaseModel):
     """Output returned by this workflow."""
-    success: bool
-    error: str | None = None
+    message: str = "Login successful"
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:
@@ -58,10 +57,10 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     # Check failure first, then success
     if agent.verify("Are we still on the login page?", timeout=10):
-        return Result(success=False, error="Login failed - still on login page")
+        raise RuntimeError("Login failed - still on login page")
     elif agent.verify("Is there an error message visible?"):
-        return Result(success=False, error="Login failed - error message displayed")
-    elif agent.verify("Is the dashboard or main page visible?", timeout=20):
-        return Result(success=True)
-    else:
-        return Result(success=False, error="Unable to verify login state")
+        raise RuntimeError("Login failed - error message displayed")
+    elif not agent.verify("Is the dashboard or main page visible?", timeout=20):
+        raise RuntimeError("Unable to verify login state")
+    
+    return Result(message="Login successful")

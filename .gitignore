@@ -21,4 +21,4 @@ Thumbs.db
 artifacts/
 
 # Private workflows - DO NOT push to public repo
-my_workflows/
+workflows/

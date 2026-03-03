@@ -162,7 +162,7 @@ Just ask - the always-apply core rules provide enough context:
 ### For Workflow Editing
 Open any workflow file and the core rules are always available:
 ```
-Open: workflows/my_workflows/login/workflow.py
+Open: workflows/login/workflow.py
 Auto-loaded: workflow-core.mdc + workflow-creation-process.mdc
 ```
 

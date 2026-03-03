@@ -77,7 +77,7 @@ The AI will create a workflow, validate it using `nen_validate`, then upload and
 Before deploying any workflow, validate its structure:
 
 ```
-Validate my workflow in workflows/my_workflows/example/workflow.py
+Validate my workflow in workflows/example/workflow.py
 ```
 
 The AI will use `nen_validate` to check:

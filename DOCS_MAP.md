@@ -180,10 +180,7 @@
 │  ├── 🎯 .cursorrules            # FSM authoring                 │
 │  ├── 🔧 setup-remote-mcp.sh     # Configure remote MCP in Cursor │
 │  └── 📁 workflows/                                               │
-│      ├── samples/               # Example workflows             │
-│      │   ├── get-appointments/                                  │
-│      │   └── download-documents/                                │
-│      └── my_workflows/          # Your workflows                │
+│      └── your-workflow-name/    # Your workflows go here        │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 

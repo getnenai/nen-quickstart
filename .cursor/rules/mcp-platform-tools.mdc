@@ -252,7 +252,7 @@ AI Action: Use StrReplace ❌ NOT update_workflow
 
 **Option B: FSM JSON (If explicitly requested)**
 1. Use `nen_create_workflow()` to generate FSM JSON
-2. Save to `workflows/my_workflows/[name]/workflow.json`
+2. Save to `workflows/[name]/workflow.json`
 
 ### For Workflow Execution:
 1. Always use `nen_run()` - direct API access

@@ -1,15 +1,17 @@
 """Download Files — download multiple files from a desktop application.
 
-Note: File download support is currently a preview feature.
-
 Demonstrates:
 - Extract list of items, then loop and act on each
 - Download tracking with success/failure counting
 - Graceful handling of failed downloads (continue)
+- Counting downloaded files via loop success tracking
 """
 
+from pathlib import Path
 from nen import Agent, Computer
 from pydantic import BaseModel, Field
+
+ARTIFACTS_DIR = Path("/artifacts")
 
 
 class Params(BaseModel):
@@ -17,19 +19,26 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
+    success: bool
     downloaded: int = 0
     files: list[str] = []
+    error: str | None = None
 
 
 def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
 
+    # Clear previous downloads
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+    for f in ARTIFACTS_DIR.glob("*.pdf"):
+        f.unlink(missing_ok=True)
+
     # Navigate to documents section
     agent.execute(f"Navigate to patient '{params.patient_name}' documents")
 
-    if not agent.verify("Is the documents list visible?"):
-        raise RuntimeError("Documents list not visible")
+    if not agent.verify("Is the documents list visible?", timeout=15):
+        return Result(success=False, error="Documents list not visible")
 
     # Discover available documents
     documents = agent.extract(
@@ -45,10 +54,13 @@ def run(params: Params) -> Result:
         agent.execute(f"Click on document '{doc}'")
         agent.execute("Click the download button")
 
-        if not agent.verify("Is the download complete or save dialog shown?"):
+        if not agent.verify("Is the download complete or save dialog shown?", timeout=30):
             print(f"Warning: Download may have failed for {doc}")
             continue
 
         downloaded_files.append(doc)
 
-    return Result(downloaded=len(downloaded_files), files=downloaded_files)
+    if not downloaded_files:
+        return Result(success=False, error="No documents were downloaded successfully")
+
+    return Result(success=True, downloaded=len(downloaded_files), files=downloaded_files)

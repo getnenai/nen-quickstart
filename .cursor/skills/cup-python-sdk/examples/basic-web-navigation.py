@@ -1,6 +1,6 @@
 """Basic Web Navigation — navigate to a website and extract data."""
 
-from nen import Agent
+from nen import Agent, Computer
 from pydantic import BaseModel, Field
 
 
@@ -10,18 +10,24 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    title: str
+    success: bool
+    title: str | None = None
+    error: str | None = None
 
 
 def run(params: Params) -> Result:
     agent = Agent()
+    computer = Computer()
+
+    # Open browser
+    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        return Result(success=False, error="Failed to open browser")
 
     # Navigate to website
-    agent.execute(f"Open the browser and navigate to {params.website_url}")
-
-    # Validate we reached the expected state
-    if not agent.verify("Is the website loaded in the browser?"):
-        raise RuntimeError("Failed to load website")
+    agent.execute(f"Navigate to {params.website_url}")
+    if not agent.verify("Is the website loaded in the browser?", timeout=20):
+        return Result(success=False, error="Failed to load website")
 
     # Extract structured data
     result = agent.extract(
@@ -35,4 +41,4 @@ def run(params: Params) -> Result:
         }
     )
 
-    return Result(title=result["title"])
+    return Result(success=True, title=result.get("title"))

@@ -264,10 +264,10 @@ computer.keyboard.press("Escape")
 computer.keyboard.press("BackSpace")
 
 # Keyboard shortcuts (Linux only — use ctrl, NOT command)
-computer.keyboard.hotkey("ctrl", "c")           # Copy
-computer.keyboard.hotkey("ctrl", "v")           # Paste
-computer.keyboard.hotkey("ctrl", "a")           # Select all
-computer.keyboard.hotkey("ctrl", "shift", "s")  # Save As
+agent.execute("Copy using keyboard shortcut")           # Copy
+agent.execute("Paste using keyboard shortcut")           # Paste
+agent.execute("Select all text using keyboard shortcut")           # Select all
+agent.execute("Save As using keyboard shortcut")  # Save As
 ```
 
 **keyboard.type() parameters:**
@@ -343,16 +343,12 @@ def run(params: Params) -> Result:
     if not agent.verify("Is the form visible?"):
         raise RuntimeError("Form not found")
 
-    # Fill and clear fields
+    # Fill fields - just type directly
     agent.execute("Click the name field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.name)
+    computer.type(params.name)
 
     agent.execute("Click the email field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.email)
+    computer.type(params.email)
 
     agent.execute("Click submit button")
 
@@ -403,16 +399,12 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         raise RuntimeError("Login page not found")
 
     agent.execute("Click username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.username)
+    computer.type(params.username)
 
     agent.execute("Click password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.password, interval=0.01)
+    computer.type(secure_params.password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     # Check failure indicators FIRST
     if agent.verify("Is there an error message?"):
@@ -788,13 +780,13 @@ schema = {
 ```python
 # Problem: xdotool error with "command" key
 # Solution: Use "ctrl" instead
-computer.keyboard.hotkey("ctrl", "a")   # ✅ Linux
-computer.keyboard.hotkey("command", "a")  # ❌ macOS only
+agent.execute("Select all text using keyboard shortcut")   # ✅ Linux
+# DO NOT USE - computer.hotkey() is broken  # ❌ macOS only
 
 # Problem: Text concatenating in field
 # Solution: Clear field first
 agent.execute("Click the field")
-computer.keyboard.hotkey("ctrl", "a")
+agent.execute("Select all text using keyboard shortcut")
 computer.keyboard.press("BackSpace")
 computer.keyboard.type(params.text)
 ```

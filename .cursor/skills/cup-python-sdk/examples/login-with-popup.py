@@ -41,17 +41,17 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     # Enter username — clear field first
     agent.execute("Click the email or username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.username)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.username)
 
     # Enter password — value is never exposed in the sandbox
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.password, interval=0.01)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(secure_params.password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     # Dismiss any save-password popup
     if agent.verify("Is there a save password dialog or popup?", timeout=5):

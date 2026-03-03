@@ -62,6 +62,24 @@ computer.press("Escape")    # close dialog
 computer.press("BackSpace") # delete character
 ```
 
+### hotkey()
+
+```python
+computer.hotkey(*keys: str) -> None
+```
+
+Press a key combination simultaneously.
+
+**Modifiers:** `ctrl`, `alt`, `shift`, `super`. Always use Linux/Windows modifiers — `command` is macOS-only and will crash.
+
+```python
+computer.hotkey("ctrl", "a")         # select all
+computer.hotkey("ctrl", "c")         # copy
+computer.hotkey("ctrl", "v")         # paste
+computer.hotkey("ctrl", "shift", "s") # save as
+computer.hotkey("shift", "Tab")      # reverse tab
+```
+
 ---
 
 ## computer.drive()

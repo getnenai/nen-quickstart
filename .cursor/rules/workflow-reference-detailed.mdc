@@ -162,7 +162,7 @@ agent.execute(f"Navigate to {params.url}")
 
 #### agent.verify()
 
-Check UI state with yes/no question.
+Check UI state with a natural language condition.
 
 ```python
 # Basic check
@@ -179,8 +179,9 @@ if not agent.verify("Is there an error message?"):
 ```
 
 **Parameters:**
-- `question` (str): Yes/no question about screen
+- `condition` (str): Natural language description of expected screen state
 - `timeout` (int): Max seconds to wait (default: 10)
+- `model` (str | None): Override the default model for this call (default: None)
 
 **Returns:** `bool` - True if condition met, False otherwise
 
@@ -249,24 +250,24 @@ from nen import Computer
 computer = Computer()  # Create once in run()
 ```
 
-#### computer.keyboard
+#### computer keyboard methods
 
 ```python
 # Type text
-computer.keyboard.type("hello@example.com")
-computer.keyboard.type("slow typing", interval=0.1)
+computer.type("hello@example.com")
+computer.type("slow typing", interval=0.1)
 
 # Press single key
-computer.keyboard.press("Return")
-computer.keyboard.press("Tab")
-computer.keyboard.press("Escape")
-computer.keyboard.press("BackSpace")
+computer.press("Return")
+computer.press("Tab")
+computer.press("Escape")
+computer.press("BackSpace")
 
 # Keyboard shortcuts (Linux only — use ctrl, NOT command)
-computer.keyboard.hotkey("ctrl", "c")           # Copy
-computer.keyboard.hotkey("ctrl", "v")           # Paste
-computer.keyboard.hotkey("ctrl", "a")           # Select all
-computer.keyboard.hotkey("ctrl", "shift", "s")  # Save As
+computer.hotkey("ctrl", "c")           # Copy
+computer.hotkey("ctrl", "v")           # Paste
+computer.hotkey("ctrl", "a")           # Select all
+computer.hotkey("ctrl", "shift", "s")  # Save As
 ```
 
 **keyboard.type() parameters:**
@@ -343,14 +344,14 @@ def run(params: Params) -> Result:
 
     # Fill and clear fields
     agent.execute("Click the name field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.name)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.name)
 
     agent.execute("Click the email field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.email)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.email)
 
     agent.execute("Click submit button")
 
@@ -400,16 +401,16 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         return Result(success=False, error="Login page not found")
 
     agent.execute("Click username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.username)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.username)
 
     agent.execute("Click password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.password, interval=0.01)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(secure_params.password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if agent.verify("Is dashboard visible?", timeout=20):
         return Result(success=True)
@@ -589,7 +590,7 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     })
 
     # Use password without logging it
-    computer.keyboard.type(secure_params.password)
+    computer.type(secure_params.password)
 ```
 
 ---
@@ -702,7 +703,7 @@ Need to interact with UI?
 ├─ Extracting data? → agent.extract()
 │
 ├─ Know exact coordinates?
-│  ├─ Yes → computer.mouse.click_at() or computer.keyboard
+│  ├─ Yes → computer.mouse.click_at() or computer.hotkey()/computer.press()
 │  └─ No → agent.execute()
 │
 └─ Complex multi-step?
@@ -785,15 +786,15 @@ schema = {
 ```python
 # Problem: xdotool error with "command" key
 # Solution: Use "ctrl" instead
-computer.keyboard.hotkey("ctrl", "a")   # ✅ Linux
-computer.keyboard.hotkey("command", "a")  # ❌ macOS only
+computer.hotkey("ctrl", "a")   # ✅ Linux
+computer.hotkey("command", "a")  # ❌ macOS only
 
 # Problem: Text concatenating in field
 # Solution: Clear field first
 agent.execute("Click the field")
-computer.keyboard.hotkey("ctrl", "a")
-computer.keyboard.press("BackSpace")
-computer.keyboard.type(params.text)
+computer.hotkey("ctrl", "a")
+computer.press("BackSpace")
+computer.type(params.text)
 ```
 
 ---

@@ -15,10 +15,12 @@ ARTIFACTS_DIR = Path("/artifacts")
 
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     patient_name: str = Field(min_length=1)
 
 
 class Result(BaseModel):
+    """Output returned by this workflow."""
     downloaded: int = 0
     files: list[str] = []
 

@@ -81,10 +81,9 @@ Rules:
 | Open browser | `agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")` |
 | Navigate / open URL | `agent.execute(f"Navigate to {params.url}")` |
 | Click element | `agent.execute("Click the [specific element name and location]")` |
-| Type text | `computer.type(params.field)` (after clearing field with agent or keyboard) |
+| Type text | `computer.type(params.field)` — just type directly, no need to clear |
 | Type password/secret | `computer.type(secure_params.password, interval=0.01)` — field must be `Secure[str]` in `SecureParams` |
 | Press key | `computer.press("Return")` |
-| Key combo | `agent.execute("Select all text using keyboard shortcut")` — **DO NOT use `computer.hotkey()` (broken)** |
 | Wait/check state | `agent.verify("Is [condition]?", timeout=N)` → returns bool |
 | Extract data | `agent.extract("Extract ...", schema={...})` → returns dict/list |
 | Download file | See `examples/download-files.py` |
@@ -150,7 +149,7 @@ def run(params: Params, secure_params: SecureParams) -> Result:  # drop secure_p
     if not agent.verify("Is the page loaded?", timeout=30):
         raise RuntimeError(f"Failed to load page at {params.url}")
 
-    # Phase 3: Perform actions
+    # Phase 3: Login
     agent.execute("Click the username field")
     computer.type(params.username)
     
@@ -196,8 +195,8 @@ Verify:
 - [ ] Pydantic models match the JSON input/output schema
 - [ ] Natural language in `agent.execute()` is specific (element name, location, color)
 - [ ] **Keyboard uses `computer.type()` and `computer.press()`** — NOT `computer.keyboard.type()`
-- [ ] **DO NOT use `computer.hotkey()`** — use `agent.execute()` for key combinations
-- [ ] Keyboard uses Linux modifiers (`ctrl` not `command`)
+- [ ] **DO NOT clear fields before typing** — just type directly into clicked fields
+- [ ] **DO NOT use `computer.hotkey()`** — it is broken and unreliable
 - [ ] **Failure indicators are checked FIRST** before success indicators in `agent.verify()`
 - [ ] All secrets use `Secure[str]` in `SecureParams` — never in `Params`
 - [ ] **`SecureParams` fields do NOT use `default=`** — platform injects at runtime

@@ -49,13 +49,9 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         raise RuntimeError(f"Could not reach System A at {params.system_a_url}")
 
     agent.execute("Click the username field")
-    agent.execute("Select all text in the field using keyboard shortcut")
-    computer.press("BackSpace")
     computer.type(params.system_a_username)
 
     agent.execute("Click the password field")
-    agent.execute("Select all text in the field using keyboard shortcut")
-    computer.press("BackSpace")
     computer.type(secure_params.system_a_password, interval=0.01)
 
     computer.press("Return")
@@ -89,13 +85,9 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         return Result(success=False, error="Could not reach System B")
 
     agent.execute("Click the username field")
-    agent.execute("Select all text in the field using keyboard shortcut")
-    computer.press("BackSpace")
     computer.type(params.system_b_username)
 
     agent.execute("Click the password field")
-    agent.execute("Select all text in the field using keyboard shortcut")
-    computer.press("BackSpace")
     computer.type(secure_params.system_b_password, interval=0.01)
 
     computer.press("Return")

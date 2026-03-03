@@ -17,12 +17,13 @@ computer.keyboard.hotkey("ctrl", "a")
 ```python
 computer.type(params.username)
 computer.press("Return")
-agent.execute("Select all text in the field using keyboard shortcut")
+# Note: Do not clear fields - just type directly
 ```
 
 **Reason:** 
 - `computer.keyboard.*` methods are deprecated - use flat API: `computer.type()`, `computer.press()`
-- `computer.hotkey()` is broken and unreliable - use `agent.execute()` for key combinations
+- `computer.hotkey()` is broken and unreliable
+- Fields should not be cleared before typing - just type directly into clicked fields
 
 ### 2. Error Handling Convention
 
@@ -121,8 +122,8 @@ if not agent.verify("Is the website loaded?", timeout=30):
 |------|---------------|
 | Type text | `computer.type(text)` |
 | Press key | `computer.press("Return")` |
-| Key combination | `agent.execute("Select all text using keyboard shortcut")` |
 | Mouse click | `computer.mouse.click_at(x, y)` |
+| Note | Do not clear fields - just type directly |
 
 ### SecureParams
 

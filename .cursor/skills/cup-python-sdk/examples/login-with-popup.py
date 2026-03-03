@@ -2,7 +2,7 @@
 
 Demonstrates:
 - SecureParams with Secure[str] for passwords
-- Clearing fields before typing
+- Direct typing into fields (no clearing needed)
 - Popup detection and dismissal pattern
 - Checking failure indicators before success
 """
@@ -42,16 +42,12 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     if not agent.verify("Is the login form visible?", timeout=20):
         raise RuntimeError(f"Login page not found at {params.login_url}")
 
-    # Enter username — clear field first
+    # Enter username
     agent.execute("Click the email or username field")
-    agent.execute("Select all text in the field using keyboard shortcut")
-    computer.press("BackSpace")
     computer.type(params.username)
 
     # Enter password — value is never exposed in the sandbox
     agent.execute("Click the password field")
-    agent.execute("Select all text in the field using keyboard shortcut")
-    computer.press("BackSpace")
     computer.type(secure_params.password, interval=0.01)
 
     computer.press("Return")

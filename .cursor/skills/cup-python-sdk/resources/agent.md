@@ -21,17 +21,36 @@ def run(params: Params) -> Result:
 > Perform an action on the screen using a natural language instruction
 
 ```python
-agent.execute(description: str, max_iterations: int = 10) -> None
+agent.execute(instruction: str, model: str | None = None, max_iterations: int | None = None) -> None
 ```
 
 The VLM takes a screenshot, interprets the instruction, and performs the required interactions (clicks, typing, scrolling, navigation, etc.). It may take multiple steps to complete complex instructions.
 
 ### Parameters
 
-| Parameter        | Type  | Default | Description                                                  |
-| ---------------- | ----- | ------- | ------------------------------------------------------------ |
-| `description`    | `str` | —       | Natural language description of what to do                   |
-| `max_iterations` | `int` | `10`    | Maximum number of VLM steps to attempt before giving up      |
+| Parameter        | Type              | Default | Description                                                  |
+| ---------------- | ----------------- | ------- | ------------------------------------------------------------ |
+| `instruction`    | `str`             | —       | Natural language description of what to do                   |
+| `model`          | `str \| None`     | `None`  | Override the default model for this call                     |
+| `max_iterations` | `int \| None`     | `None`  | Max screenshot→action loops the agent will attempt (server defaults to **10** when not specified) |
+
+### Understanding `max_iterations`
+
+Each `execute()` call runs in a **screenshot → think → act** loop. One iteration = one cycle of:
+
+1. Take a screenshot of the current screen
+2. Send it to the VLM with the instruction
+3. VLM decides and performs an action (click, type, scroll, etc.)
+
+`max_iterations` caps how many of these loops can run before the agent stops. This is useful for:
+
+- **Simple actions** (clicking a button): Lower values like `3`–`5` prevent the agent from spinning if it can't find the element.
+- **Complex multi-step actions** (filling a form, navigating menus): Higher values like `15`–`20` give the agent enough room to complete all steps.
+- **Default behavior**: When omitted, the server defaults to **10** iterations, which works well for most common tasks.
+
+> **When to increase:** If your instruction involves multiple sequential interactions (e.g., filling several fields, navigating through menus), bump it up.
+>
+> **When to decrease:** If you want fast failure for simple one-click actions, lower it to avoid wasting time on retries.
 
 ### Examples
 
@@ -49,11 +68,20 @@ agent.execute("Click the blue 'Submit' button in the bottom right of the form")
 agent.execute("Click the email field")
 computer.type(params.email)
 
+# Simple click — cap at 5 to fail fast if the button isn't visible
+agent.execute("Click the Submit button", max_iterations=5)
+
 # Dismiss popups
 agent.execute("Close any welcome messages, popups, or dialogs if they appear", max_iterations=5)
 
-# Complex multi-step action
-agent.execute("Fill in the entire registration form with test data", max_iterations=20)
+# Multi-step form fill — needs more iterations to complete all fields
+agent.execute(
+    "Fill in the registration form with name 'Jane Doe', email 'jane@example.com', and select 'Premium' plan",
+    max_iterations=20,
+)
+
+# Default (None) — server uses 10 iterations, good for most tasks
+agent.execute("Open Chromium and navigate to https://example.com")
 ```
 
 > **Tip:** Write instructions as if you're telling a human what to do. Be specific about which element to interact with — "Click the blue 'Submit' button in the form footer" is better than "Click submit".

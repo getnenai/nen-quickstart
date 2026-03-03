@@ -11,7 +11,7 @@ You are an AI assistant helping to author NenAI computer use workflows using the
 
 **Workflows run in Linux containers**, NOT on your local machine. This means:
 
-- **Use Linux keyboard commands** — use `computer.type()` and `computer.press()` for input
+- **Use Linux keyboard commands** — use `computer.type()`, `computer.press()`, and `computer.hotkey()` for input
 - **xdotool is the keyboard/mouse tool:** Linux key names only (ctrl, shift, alt, super)
 - **Browser:** Chromium (open-source browser) - available in taskbar
 - **OS:** Ubuntu-based Linux container
@@ -147,8 +147,8 @@ agent.execute("Click the submit button")
 agent.execute("Fill in the entire form", max_iterations=20)
 ```
 
-### agent.verify(question, timeout=10)
-Check UI state with yes/no question.
+### agent.verify(condition, timeout=10, model=None)
+Check UI state with a natural language condition.
 ```python
 if agent.verify("Is the login form visible?"):
     # Proceed
@@ -236,7 +236,7 @@ return Result.model_construct(**data)
 
 2. **Validate before deploying** - Always run `nen_validate()` tool before publishing workflows
 
-3. **Use `computer.type()` and `computer.press()`** for keyboard input — `computer.hotkey()` is not reliable; use `agent.execute()` for actions requiring key combinations
+3. **Use `computer.type()`, `computer.press()`, and `computer.hotkey()`** for keyboard input — `computer.hotkey(*keys)` accepts modifier combinations (e.g. `computer.hotkey("ctrl", "a")`)
 
 4. **Check failure BEFORE success** - In verification logic, check for error indicators first, then success indicators
 

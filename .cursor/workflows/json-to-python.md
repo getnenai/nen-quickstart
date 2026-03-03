@@ -76,10 +76,10 @@ Rules:
 | Open browser | `agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")` |
 | Navigate / open URL | `agent.execute(f"Navigate to {params.url}")` |
 | Click element | `agent.execute("Click the [specific element name and location]")` |
-| Type text | `computer.keyboard.type(params.field)` (after clearing field with `ctrl+a` + `BackSpace`) |
-| Type password/secret | `computer.keyboard.type(secure_params.password, interval=0.01)` — field must be `Secure[str]` in `SecureParams` |
-| Press key | `computer.keyboard.press("Return")` |
-| Key combo | `computer.keyboard.hotkey("ctrl", "a")` — always use `ctrl`, never `command` |
+| Type text | `computer.type(params.field)` (after clearing field with `ctrl+a` + `BackSpace`) |
+| Type password/secret | `computer.type(secure_params.password, interval=0.01)` — field must be `Secure[str]` in `SecureParams` |
+| Press key | `computer.press("Return")` |
+| Key combo | `computer.hotkey("ctrl", "a")` — always use `ctrl`, never `command` |
 | Wait/check state | `agent.verify("Is [condition]?", timeout=N)` → returns bool |
 | Extract data | `agent.extract("Extract ...", schema={...})` → returns dict/list |
 | Download file | See `examples/download-files.py` |
@@ -127,9 +127,9 @@ def run(params: Params, secure_params: SecureParams) -> Result:  # drop secure_p
 
     # Phase 3: Perform actions
     agent.execute("Click the [element]")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.url)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.url)
 
     # Phase 4: Verify result — check failure FIRST
     if agent.verify("Is there an error message visible?"):

@@ -46,16 +46,16 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         return Result(success=False, error="Could not reach System A")
 
     agent.execute("Click the username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.system_a_username)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.system_a_username)
 
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.system_a_password, interval=0.01)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(secure_params.system_a_password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if not agent.verify("Is System A dashboard visible?", timeout=20):
         return Result(success=False, error="System A login failed")
@@ -86,16 +86,16 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         return Result(success=False, error="Could not reach System B")
 
     agent.execute("Click the username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.system_b_username)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.system_b_username)
 
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.system_b_password, interval=0.01)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(secure_params.system_b_password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if not agent.verify("Is System B main window visible?", timeout=20):
         return Result(success=False, error="System B login failed")

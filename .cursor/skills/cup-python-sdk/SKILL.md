@@ -14,7 +14,7 @@ Use this skill whenever you need to write or modify Nen Python workflows. Read t
 | [introduction.md](resources/introduction.md) | SDK overview, core concepts, how it works |
 | [workflow-structure.md](resources/workflow-structure.md) | `run()` entry point, `Params`, `Result`, Pydantic models |
 | [agent.md](resources/agent.md) | `Agent` — `execute()`, `verify()`, `extract()` |
-| [computer.md](resources/computer.md) | `Computer` — `type/press`, `mouse.click_at/move/scroll`, `drive()` |
+| [computer.md](resources/computer.md) | `Computer` — `type/press/hotkey`, `mouse.click_at/move/scroll`, `drive()` |
 | [secure_params.md](resources/secure_params.md) | Handling sensitive data (passwords, tokens) in workflows |
 | [files.md](resources/files.md) | `computer.drive()`, `Drive`, `File`, reading files, writing to `/artifacts` |
 | [error-handling.md](resources/error-handling.md) | `WorkflowError`, `RPCError`, `TimeoutError`, retry patterns, raising errors, error webhooks |

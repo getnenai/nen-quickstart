@@ -61,7 +61,7 @@ Create the Python SDK workflow file using `nen.workflow` primitives:
    - Include proper docstring with workflow description
    - Define Pydantic `Params` and `Result` models with type hints
    - Implement `run(params: Params) -> Result` function
-   - Use SDK primitives: `Agent` (`agent.execute()`, `agent.verify()`, `agent.extract()`), `Computer` (`computer.type()`, `computer.press()`, `computer.mouse`)
+   - Use SDK primitives: `Agent` (`agent.execute()`, `agent.verify()`, `agent.extract()`), `Computer` (`computer.type()`, `computer.press()`, `computer.hotkey()`, `computer.mouse`)
    - Return Pydantic `Result` model with `success: bool` field
 
 3. **Validate locally:**
@@ -97,7 +97,7 @@ Before validating and deploying your workflow, verify these common issues:
 - [ ] Agent descriptions are specific: "Click the blue 'Submit' button" not "Click submit"
 - [ ] Sensitive data (passwords, tokens) not logged
 - [ ] **`SecureParams` fields do NOT use `default=`** — the platform injects secrets at runtime; use `Field(min_length=1, description="...")` only
-- [ ] **Computer keyboard calls are flat** — use `computer.type()` and `computer.press()` NOT `computer.keyboard.type()` etc. Do NOT use `computer.hotkey()` (broken); use `agent.execute()` for key combinations instead
+- [ ] **Computer keyboard calls are flat** — use `computer.type()`, `computer.press()`, and `computer.hotkey()` directly. Do NOT use `computer.keyboard.type()` etc. (no sub-object)
 
 ### ✅ Python Syntax
 - [ ] **Docstrings use standard Python format** (no `\n` or `\"""` escaping)
@@ -407,9 +407,9 @@ Automates login to the EzyVet trial portal using provided credentials.
 
 ---
 
-### 1. Platform-Specific Keyboard Commands ❌
+### 1. macOS-Style Keyboard Commands ❌
 
-**Problem:** Using `computer.hotkey()` or macOS-style key combinations
+**Problem:** Using macOS `command` key in `computer.hotkey()`
 
 **Symptom:**
 ```
@@ -417,15 +417,16 @@ ERROR: xdotool key command failed: (symbol) No such key name 'command'
 WorkflowError: Keyboard hotkey failed
 ```
 
-**Solution:** Do NOT use `computer.hotkey()` — it is unreliable. Use `agent.execute()` to describe key combinations in natural language.
+**Solution:** Use `ctrl` (not `command`) — workflows run in Linux containers.
 
 ```python
-# ❌ WRONG - computer.hotkey() is broken
+# ❌ WRONG - macOS only (crashes with xdotool error)
 computer.hotkey("command", "a")
-computer.hotkey("ctrl", "a")
+computer.hotkey("command", "c")
 
-# ✅ CORRECT - use agent.execute() for key combinations
-agent.execute("Select all text in the field using keyboard shortcut")
+# ✅ CORRECT - Linux/Windows modifiers
+computer.hotkey("ctrl", "a")
+computer.hotkey("ctrl", "c")
 ```
 
 ### 2. Verification False Positives ❌

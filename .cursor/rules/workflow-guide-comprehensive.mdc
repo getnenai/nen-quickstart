@@ -245,13 +245,13 @@ The `nen` SDK provides these main primitives:
 | `agent.verify()` | Check UI state | Yes | Verify page loaded, confirm success |
 | `agent.extract()` | Extract structured data | Yes | Read tables, forms, lists |
 | `computer.mouse` | Direct mouse control | No | Known coordinates, precise clicks |
-| `computer.keyboard` | Direct keyboard control | No | Type text, press keys, shortcuts |
+| `computer.type/press/hotkey` | Direct keyboard control | No | Type text, press keys, shortcuts |
 
 **Decision Tree for Choosing Primitives:**
 
 ```
 Need to interact with UI?
-├─ Know exact coordinates? → Use computer.mouse/computer.keyboard
+├─ Know exact coordinates? → Use computer.mouse/computer.hotkey()/computer.press()
 ├─ Need to find element visually? → Use agent.execute()
 ├─ Just checking state? → Use agent.verify()
 └─ Need to extract data? → Use agent.extract()
@@ -260,6 +260,20 @@ Need to interact with UI?
 ---
 
 ## Agent Primitive
+
+### Constructor
+
+```python
+Agent(model: str | None = None)
+```
+
+| Parameter | Type          | Default | Description                                                                            |
+| --------- | ------------- | ------- | -------------------------------------------------------------------------------------- |
+| `model`   | `str \| None` | `None`  | Default VLM for all calls on this agent. If not set, defaults to `claude-sonnet-4-6`. |
+
+```python
+agent = Agent()
+```
 
 ### Overview
 
@@ -333,7 +347,7 @@ agent.execute("Find and click each 'Download' link on the page", max_iterations=
 - Complex multi-step interaction
 - UI structure may vary
 
-**Use `computer.mouse`/`computer.keyboard` when:**
+**Use `computer.mouse`/`computer.type()`/`computer.press()`/`computer.hotkey()` when:**
 - Know exact coordinates
 - Repeating same action precisely
 - Performance is critical (avoid VLM overhead)
@@ -357,7 +371,7 @@ if agent.verify("Is the login form visible?"):
 ### Function Signature
 
 ```python
-def verify(question: str, timeout: int = 10) -> bool
+def verify(condition: str, timeout: int = 10, model: str | None = None) -> bool
 ```
 
 Polls until the condition is met or the timeout expires. Returns `True` if met, `False` otherwise.
@@ -558,28 +572,28 @@ The `Computer` class provides **deterministic** (non-VLM) keyboard and mouse con
 ```python
 computer = Computer()
 computer.mouse.click_at(500, 300)
-computer.keyboard.type("hello@example.com")
-computer.keyboard.press("Return")
+computer.type("hello@example.com")
+computer.press("Return")
 ```
 
 ### Keyboard
 
 ```python
 # Type text
-computer.keyboard.type("hello@example.com")
-computer.keyboard.type("password", interval=0.01)  # slower typing
+computer.type("hello@example.com")
+computer.type("password", interval=0.01)  # slower typing
 
 # Press single key
-computer.keyboard.press("Return")
-computer.keyboard.press("Tab")
-computer.keyboard.press("Escape")
-computer.keyboard.press("BackSpace")
+computer.press("Return")
+computer.press("Tab")
+computer.press("Escape")
+computer.press("BackSpace")
 
 # Keyboard shortcuts (Linux key names!)
-computer.keyboard.hotkey("ctrl", "a")          # select all
-computer.keyboard.hotkey("ctrl", "c")          # copy
-computer.keyboard.hotkey("ctrl", "v")          # paste
-computer.keyboard.hotkey("ctrl", "shift", "s") # save as
+computer.hotkey("ctrl", "a")          # select all
+computer.hotkey("ctrl", "c")          # copy
+computer.hotkey("ctrl", "v")          # paste
+computer.hotkey("ctrl", "shift", "s") # save as
 ```
 
 ### Mouse
@@ -657,7 +671,7 @@ class SecureParams(BaseModel):
 def run(params: Params, secure_params: SecureParams) -> Result:
     computer = Computer()
     # Use without logging
-    computer.keyboard.type(secure_params.password, interval=0.01)
+    computer.type(secure_params.password, interval=0.01)
 
     # ❌ NEVER log sensitive values
     # print(f"Using password: {secure_params.password}")
@@ -856,9 +870,9 @@ def authenticate(agent, computer, params):
     if not agent.verify("Is the login form visible?", timeout=20):
         return False
     agent.execute("Click the username or email field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.username)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.username)
     # ...
     return agent.verify("Is the dashboard visible?", timeout=20)
 
@@ -940,7 +954,7 @@ def run(params: Params) -> Result:
         return Result(success=False, error="Failed to load website")
 
     agent.execute("Click the search box and type 'example query'")
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if not agent.verify("Are search results visible?", timeout=15):
         return Result(success=False, error="No search results")
@@ -984,20 +998,20 @@ def run(params: Params) -> Result:
         return Result(success=False, error="Form not found")
 
     agent.execute("Click the name field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.name)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.name)
 
     agent.execute("Click the email field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.email)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.email)
 
     if params.message:
         agent.execute("Click the message field")
-        computer.keyboard.hotkey("ctrl", "a")
-        computer.keyboard.press("BackSpace")
-        computer.keyboard.type(params.message)
+        computer.hotkey("ctrl", "a")
+        computer.press("BackSpace")
+        computer.type(params.message)
 
     agent.execute("Click the submit button")
 
@@ -1100,16 +1114,16 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         return Result(success=False, error="Login page not found")
 
     agent.execute("Click the username or email field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.username)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(params.username)
 
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.password, interval=0.01)
+    computer.hotkey("ctrl", "a")
+    computer.press("BackSpace")
+    computer.type(secure_params.password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if agent.verify("Are we still on the login page?", timeout=10):
         return Result(success=False, error="Login failed - still on login page")
@@ -1230,10 +1244,10 @@ data = agent.extract("Get confirmation number", schema=schema)
 
 ```python
 # BAD - Crashes on Linux
-computer.keyboard.hotkey("command", "a")
+computer.hotkey("command", "a")
 
 # GOOD - Linux-compatible
-computer.keyboard.hotkey("ctrl", "a")
+computer.hotkey("ctrl", "a")
 ```
 
 **Pitfall 5: Not Clearing Input Fields**
@@ -1241,13 +1255,13 @@ computer.keyboard.hotkey("ctrl", "a")
 ```python
 # BAD - May concatenate with existing content
 agent.execute("Click email field")
-computer.keyboard.type(params.email)
+computer.type(params.email)
 
 # GOOD - Clear first
 agent.execute("Click email field")
-computer.keyboard.hotkey("ctrl", "a")
-computer.keyboard.press("BackSpace")
-computer.keyboard.type(params.email)
+computer.hotkey("ctrl", "a")
+computer.press("BackSpace")
+computer.type(params.email)
 ```
 
 **Pitfall 6: Logging Sensitive Data**

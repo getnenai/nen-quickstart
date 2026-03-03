@@ -1,10 +1,20 @@
 # Agent
 
-> VLM-driven controller for executing actions, verifying screen state, and extracting structured data.
+> VLM-powered controller for executing actions, verifying state, and extracting data
 
 ```python
 from nen import Agent, Computer
 ```
+
+## Constructor
+
+```python
+Agent(model: str | None = None)
+```
+
+| Parameter | Type          | Default | Description                                                                            |
+| --------- | ------------- | ------- | -------------------------------------------------------------------------------------- |
+| `model`   | `str \| None` | `None`  | Default VLM for all calls on this agent. If not set, defaults to `claude-sonnet-4-6`. |
 
 Create an `Agent` instance inside your `run()` function:
 
@@ -47,9 +57,9 @@ agent.execute("Click the blue 'Submit' button in the bottom right of the form")
 
 # Fill a field (clear first, then type with Computer)
 agent.execute("Click the email field")
-computer.keyboard.hotkey("ctrl", "a")
-computer.keyboard.press("BackSpace")
-computer.keyboard.type(params.email)
+computer.hotkey("ctrl", "a")
+computer.press("BackSpace")
+computer.type(params.email)
 
 # Dismiss popups
 agent.execute("Close any welcome messages, popups, or dialogs if they appear", max_iterations=5)
@@ -67,17 +77,18 @@ agent.execute("Fill in the entire registration form with test data", max_iterati
 > Check whether a visual condition is true on the current screen
 
 ```python
-agent.verify(question: str, timeout: int = 10) -> bool
+agent.verify(condition: str, timeout: int = 10, model: str | None = None) -> bool
 ```
 
 Polls until the condition is met or the timeout expires. Returns `True` if the condition is met, `False` otherwise.
 
 ### Parameters
 
-| Parameter  | Type  | Default | Description                                           |
-| ---------- | ----- | ------- | ----------------------------------------------------- |
-| `question` | `str` | —       | Natural language yes/no question about the screen     |
-| `timeout`  | `int` | `10`    | Seconds to wait before returning `False`              |
+| Parameter   | Type          | Default | Description                                           |
+| ----------- | ------------- | ------- | ----------------------------------------------------- |
+| `condition` | `str`         | —       | Natural language description of expected screen state |
+| `timeout`   | `int`         | `10`    | Seconds to wait before returning `False`              |
+| `model`     | `str \| None` | `None`  | Override the default model for this call              |
 
 ### Returns
 

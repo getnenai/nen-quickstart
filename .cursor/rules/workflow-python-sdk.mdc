@@ -20,24 +20,24 @@ alwaysApply: false
 
 ```python
 # ❌ WRONG - macOS only (will crash with xdotool error)
-computer.keyboard.hotkey("command", "a")
-computer.keyboard.hotkey("command", "c")
+computer.hotkey("command", "a")
+computer.hotkey("command", "c")
 
 # ✅ CORRECT - Linux/Windows (works in workflow container)
-computer.keyboard.hotkey("ctrl", "a")
-computer.keyboard.hotkey("ctrl", "c")
+computer.hotkey("ctrl", "a")
+computer.hotkey("ctrl", "c")
 ```
 
 **Common key mappings:**
-- Select All: `computer.keyboard.hotkey("ctrl", "a")` (not "command")
-- Copy: `computer.keyboard.hotkey("ctrl", "c")` (not "command")
-- Paste: `computer.keyboard.hotkey("ctrl", "v")` (not "command")
-- Cut: `computer.keyboard.hotkey("ctrl", "x")` (not "command")
-- Save: `computer.keyboard.hotkey("ctrl", "s")` (not "command")
+- Select All: `computer.hotkey("ctrl", "a")` (not "command")
+- Copy: `computer.hotkey("ctrl", "c")` (not "command")
+- Paste: `computer.hotkey("ctrl", "v")` (not "command")
+- Cut: `computer.hotkey("ctrl", "x")` (not "command")
+- Save: `computer.hotkey("ctrl", "s")` (not "command")
 
 ### xdotool Key Names
 
-Valid key names for `computer.keyboard.press()` and `computer.keyboard.hotkey()`:
+Valid key names for `computer.press()` and `computer.hotkey()`:
 
 **Modifier keys:**
 - `ctrl` - Control key (Linux/Windows)
@@ -75,20 +75,20 @@ computer = Computer()
 
 # Method 1: Select all + delete
 agent.execute("Click on the email field")
-computer.keyboard.hotkey("ctrl", "a")  # Select all text
-computer.keyboard.press("BackSpace")   # Delete selected text
-computer.keyboard.type(params.email)   # Type new content
+computer.hotkey("ctrl", "a")  # Select all text
+computer.press("BackSpace")   # Delete selected text
+computer.type(params.email)   # Type new content
 
 # Method 2: Triple-click to select all + delete
 agent.execute("Triple-click the text field to select all")
-computer.keyboard.press("BackSpace")
-computer.keyboard.type(params.value)
+computer.press("BackSpace")
+computer.type(params.value)
 
 # Method 3: For known content length, use multiple backspaces
 agent.execute("Click at the end of the text field")
 for _ in range(50):  # Exceed expected length
-    computer.keyboard.press("BackSpace")
-computer.keyboard.type(params.text)
+    computer.press("BackSpace")
+computer.type(params.text)
 ```
 
 **Why clearing is important:**
@@ -158,13 +158,13 @@ from nen import Computer
 computer = Computer()
 
 # Standard typing (fast)
-computer.keyboard.type("username@example.com")
+computer.type("username@example.com")
 
 # Slower typing for better reliability (10ms between chars)
-computer.keyboard.type("password123", interval=0.01)
+computer.type("password123", interval=0.01)
 
 # Very slow for temperamental forms (50ms between chars)
-computer.keyboard.type("sensitive-data", interval=0.05)
+computer.type("sensitive-data", interval=0.05)
 ```
 
 ### Mouse Coordinates
@@ -326,8 +326,8 @@ agent.execute("Fill in the entire registration form", max_iterations=20)
 agent.execute("Navigate to the settings page")
 ```
 
-#### agent.verify(question, timeout=10)
-Check UI state with yes/no question. Returns bool.
+#### agent.verify(condition, timeout=10, model=None)
+Check UI state with a natural language condition. Returns bool.
 
 ```python
 if agent.verify("Is the login form visible?"):
@@ -362,31 +362,31 @@ from nen import Computer
 computer = Computer()
 ```
 
-#### computer.keyboard.type(text, interval=0.02)
+#### computer.type(text, interval=0.02)
 Type text with optional delay between characters.
 
 ```python
-computer.keyboard.type("username@example.com")
-computer.keyboard.type("password", interval=0.01)  # 10ms delay per char
+computer.type("username@example.com")
+computer.type("password", interval=0.01)  # 10ms delay per char
 ```
 
-#### computer.keyboard.press(key)
+#### computer.press(key)
 Press a single key.
 
 ```python
-computer.keyboard.press("Return")
-computer.keyboard.press("BackSpace")
-computer.keyboard.press("Tab")
+computer.press("Return")
+computer.press("BackSpace")
+computer.press("Tab")
 ```
 
-#### computer.keyboard.hotkey(*keys)
+#### computer.hotkey(*keys)
 Press multiple keys simultaneously (modifier combos).
 
 ```python
-computer.keyboard.hotkey("ctrl", "a")    # Select all
-computer.keyboard.hotkey("ctrl", "c")    # Copy
-computer.keyboard.hotkey("ctrl", "v")    # Paste
-computer.keyboard.hotkey("shift", "Tab") # Reverse tab
+computer.hotkey("ctrl", "a")    # Select all
+computer.hotkey("ctrl", "c")    # Copy
+computer.hotkey("ctrl", "v")    # Paste
+computer.hotkey("shift", "Tab") # Reverse tab
 ```
 
 #### computer.mouse.click_at(x, y, button="left")

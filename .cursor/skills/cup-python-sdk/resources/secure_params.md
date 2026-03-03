@@ -52,14 +52,10 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         raise RuntimeError("Login page not found or failed to load")
 
     agent.execute("Click the username or email field")
-    computer.hotkey("ctrl", "a")
-    computer.press("BackSpace")
     computer.type(params.username)
 
     # Enter password — value is never exposed in the sandbox
     agent.execute("Click the password field")
-    computer.hotkey("ctrl", "a")
-    computer.press("BackSpace")
     computer.type(secure_params.password, interval=0.01)
 
     computer.press("Return")

@@ -20,24 +20,24 @@ alwaysApply: false
 
 ```python
 # ❌ WRONG - macOS only (will crash with xdotool error)
-computer.keyboard.hotkey("command", "a")
-computer.keyboard.hotkey("command", "c")
+computer.hotkey("command", "a")
+computer.hotkey("command", "c")
 
 # ✅ CORRECT - Linux/Windows (works in workflow container)
-computer.keyboard.hotkey("ctrl", "a")
-computer.keyboard.hotkey("ctrl", "c")
+computer.hotkey("ctrl", "a")
+computer.hotkey("ctrl", "c")
 ```
 
 **Common key mappings:**
-- Select All: `computer.keyboard.hotkey("ctrl", "a")` (not "command")
-- Copy: `computer.keyboard.hotkey("ctrl", "c")` (not "command")
-- Paste: `computer.keyboard.hotkey("ctrl", "v")` (not "command")
-- Cut: `computer.keyboard.hotkey("ctrl", "x")` (not "command")
-- Save: `computer.keyboard.hotkey("ctrl", "s")` (not "command")
+- Select All: `computer.hotkey("ctrl", "a")` (not "command")
+- Copy: `computer.hotkey("ctrl", "c")` (not "command")
+- Paste: `computer.hotkey("ctrl", "v")` (not "command")
+- Cut: `computer.hotkey("ctrl", "x")` (not "command")
+- Save: `computer.hotkey("ctrl", "s")` (not "command")
 
 ### xdotool Key Names
 
-Valid key names for `computer.keyboard.press()` and `computer.keyboard.hotkey()`:
+Valid key names for `computer.press()` and `computer.hotkey()`:
 
 **Modifier keys:**
 - `ctrl` - Control key (Linux/Windows)
@@ -63,9 +63,9 @@ Valid key names for `computer.keyboard.press()` and `computer.keyboard.hotkey()`
 
 ## Common Patterns
 
-### Clearing Input Fields
+### Typing in Input Fields
 
-Always clear fields before typing new content:
+**Just type directly - do NOT clear fields first:**
 
 ```python
 from nen import Agent, Computer
@@ -73,28 +73,18 @@ from nen import Agent, Computer
 agent = Agent()
 computer = Computer()
 
-# Method 1: Select all + delete
+# ✅ CORRECT - Just type directly
 agent.execute("Click on the email field")
-computer.keyboard.hotkey("ctrl", "a")  # Select all text
-computer.keyboard.press("BackSpace")   # Delete selected text
-computer.keyboard.type(params.email)   # Type new content
+computer.type(params.email)
 
-# Method 2: Triple-click to select all + delete
-agent.execute("Triple-click the text field to select all")
-computer.keyboard.press("BackSpace")
-computer.keyboard.type(params.value)
-
-# Method 3: For known content length, use multiple backspaces
-agent.execute("Click at the end of the text field")
-for _ in range(50):  # Exceed expected length
-    computer.keyboard.press("BackSpace")
-computer.keyboard.type(params.text)
+# ✅ CORRECT - Type password
+agent.execute("Click the password field")
+computer.type(secure_params.password, interval=0.01)
 ```
 
-**Why clearing is important:**
-- Fields may have default/pre-filled values
-- Previous workflow runs may leave data
-- Concatenation errors occur if you don't clear first
+**To clear fields before typing:**
+- Use `computer.hotkey("ctrl", "a")` then `computer.press("BackSpace")`
+- Or just type directly if the field is empty
 
 ### Validation Strategies
 
@@ -379,14 +369,14 @@ computer.keyboard.press("BackSpace")
 computer.keyboard.press("Tab")
 ```
 
-#### computer.keyboard.hotkey(*keys)
-Press multiple keys simultaneously (modifier combos).
+#### computer.hotkey(*keys)
+Press multiple keys simultaneously (modifier combos). Use Linux key names only.
 
 ```python
-computer.keyboard.hotkey("ctrl", "a")    # Select all
-computer.keyboard.hotkey("ctrl", "c")    # Copy
-computer.keyboard.hotkey("ctrl", "v")    # Paste
-computer.keyboard.hotkey("shift", "Tab") # Reverse tab
+computer.hotkey("ctrl", "a")    # Select all
+computer.hotkey("ctrl", "c")    # Copy
+computer.hotkey("ctrl", "v")    # Paste
+computer.hotkey("shift", "Tab") # Reverse tab
 ```
 
 #### computer.mouse.click_at(x, y, button="left")

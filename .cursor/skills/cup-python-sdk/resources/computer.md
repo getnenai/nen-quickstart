@@ -14,7 +14,7 @@ Create a `Computer` instance inside your `run()` function:
 def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
-    # ... use computer.type/press/hotkey and computer.mouse
+    # ... use computer.type/press and computer.mouse
 ```
 
 ---
@@ -43,7 +43,7 @@ computer.type(params.username)
 computer.type(secure_params.password, interval=0.01)
 ```
 
-> **Important:** Always clear the field before typing. Use `agent.execute()` to select-all and delete any pre-existing content, then type.
+> **Tip:** If a field has pre-existing content, clear it first with `computer.hotkey("ctrl", "a")` then `computer.press("BackSpace")` before typing.
 
 ### press()
 
@@ -60,6 +60,24 @@ computer.press("Return")    # submit form / confirm
 computer.press("Tab")       # move to next field
 computer.press("Escape")    # close dialog
 computer.press("BackSpace") # delete character
+```
+
+### hotkey()
+
+```python
+computer.hotkey(*keys: str) -> None
+```
+
+Press multiple keys simultaneously (modifier combos). Use Linux key names — `ctrl`, `shift`, `alt`, `super`. Do **not** use `"command"` (macOS only; crashes on Linux).
+
+```python
+computer.hotkey("ctrl", "a")           # Select all
+computer.hotkey("ctrl", "c")           # Copy
+computer.hotkey("ctrl", "v")           # Paste
+computer.hotkey("ctrl", "x")           # Cut
+computer.hotkey("ctrl", "z")           # Undo
+computer.hotkey("ctrl", "shift", "s")  # Save As
+computer.hotkey("shift", "Tab")        # Reverse tab
 ```
 
 ---

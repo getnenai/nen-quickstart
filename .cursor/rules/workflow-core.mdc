@@ -236,7 +236,7 @@ return Result.model_construct(**data)
 
 2. **Validate before deploying** - Always run `nen_validate()` tool before publishing workflows
 
-3. **Use `computer.type()` and `computer.press()`** for keyboard input — `computer.hotkey()` is not reliable; use `agent.execute()` for actions requiring key combinations
+3. **Use `computer.type()`, `computer.press()`, and `computer.hotkey()`** for keyboard input — use Linux key names only (`ctrl`, not `command`)
 
 4. **Check failure BEFORE success** - In verification logic, check for error indicators first, then success indicators
 

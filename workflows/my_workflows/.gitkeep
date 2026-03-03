@@ -1,4 +1,0 @@
-# This directory is for your custom workflows
-# Each workflow should have its own subdirectory with:
-#   - orchestrator.json
-#   - workflow.json

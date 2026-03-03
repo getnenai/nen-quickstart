@@ -12,9 +12,7 @@ class Params(BaseModel):
 
 class Result(BaseModel):
     """Output returned by this workflow."""
-    success: bool
-    title: str | None = None
-    error: str | None = None
+    title: str
 
 
 def run(params: Params) -> Result:
@@ -32,15 +30,9 @@ def run(params: Params) -> Result:
         raise RuntimeError(f"Failed to load website at {params.website_url}")
 
     # Extract structured data
-    result = agent.extract(
+    data = agent.extract(
         f"What is the title of post {params.post_index + 1}?",
-        schema={
-            "type": "object",
-            "properties": {
-                "title": {"type": "string"}
-            },
-            "required": ["title"]
-        }
+        Result.model_json_schema()
     )
 
-    return Result(success=True, title=result.get("title"))
+    return Result.model_construct(**data)

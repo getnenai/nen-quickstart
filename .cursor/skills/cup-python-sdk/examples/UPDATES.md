@@ -46,11 +46,36 @@ if not agent.verify("Is the page loaded?", timeout=30):
 ```
 
 **Reason:**
-- **Unrecoverable failures** (browser won't open, site unreachable) → `raise RuntimeError("...")`
-- **Expected failures** (wrong password, item not found) → `return Result(success=False, error="...")`
-- Browser and page loading failures are unrecoverable - nothing can proceed without them
+- **ALL failures use `raise`** - browser won't open, site unreachable, login failed, extraction failed
+- **Result models actual data, not success/failure envelope**
+- No `success: bool` or `error: str | None` fields in Result
+- Workflows either succeed (return Result with data) or fail (raise exception)
 
-### 3. Model Docstrings
+### 3. Result Models Actual Data (Not Success/Failure Envelope)
+
+**Before:**
+```python
+class Result(BaseModel):
+    success: bool
+    data: dict | None = None
+    error: str | None = None
+```
+
+**After:**
+```python
+class Result(BaseModel):
+    """Output returned by this workflow."""
+    title: str  # Actual data being extracted
+    url: str    # Actual data being extracted
+```
+
+**Reason:** 
+- Result models the actual data being extracted/returned
+- No `success: bool` or `error: str | None` fields
+- Use `raise` for all failures instead of returning Result(success=False)
+- Workflows either succeed (return Result with data) or fail (raise exception)
+
+### 4. Model Docstrings
 
 **Before:**
 ```python
@@ -59,9 +84,6 @@ class Params(BaseModel):
 
 class SecureParams(BaseModel):
     password: Secure[str]
-
-class Result(BaseModel):
-    success: bool
 ```
 
 **After:**
@@ -73,15 +95,11 @@ class Params(BaseModel):
 class SecureParams(BaseModel):
     """Secure parameters for this workflow."""
     password: Secure[str]
-
-class Result(BaseModel):
-    """Output returned by this workflow."""
-    success: bool
 ```
 
 **Reason:** Consistent documentation style across all examples
 
-### 4. Timeout Adjustments
+### 5. Timeout Adjustments
 
 **Before:**
 ```python
@@ -112,9 +130,10 @@ if not agent.verify("Is the website loaded?", timeout=30):
 |-----------|---------|
 | Browser won't open | `raise RuntimeError("Failed to open Chromium browser")` |
 | Site unreachable | `raise RuntimeError(f"Failed to load {url}")` |
+| Login failed | `raise RuntimeError("Login failed - still on login page")` |
 | Extraction returned nothing | `raise ValueError("Extraction returned no content")` |
-| Wrong password | `return Result(success=False, error="Login failed")` |
-| Item not found | `return Result(success=False, error="Item not found")` |
+| Item not found | `raise RuntimeError("Item not found")` |
+| **ALL failures** | **Use `raise` - never return Result(success=False)** |
 
 ### Computer API
 
@@ -124,6 +143,13 @@ if not agent.verify("Is the website loaded?", timeout=30):
 | Press key | `computer.press("Return")` |
 | Mouse click | `computer.mouse.click_at(x, y)` |
 | Note | Do not clear fields - just type directly |
+
+### Result Models
+
+- **Result models actual data, not success/failure envelope**
+- No `success: bool` or `error: str | None` fields
+- Define fields for the data being extracted (e.g., `title: str`, `customer_id: str`)
+- Workflows either succeed (return Result with data) or fail (raise exception)
 
 ### SecureParams
 
@@ -136,6 +162,7 @@ if not agent.verify("Is the website loaded?", timeout=30):
 - Check failure indicators FIRST, then success
 - Use specific questions: "Is there an 'Invalid email' error?" not "Did it work?"
 - Use appropriate timeouts: 10s for browser, 30s for page loads
+- Raise exceptions for all failures - never return Result(success=False)
 
 ## Testing
 

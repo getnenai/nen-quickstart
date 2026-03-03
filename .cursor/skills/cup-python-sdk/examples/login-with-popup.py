@@ -12,15 +12,18 @@ from pydantic import BaseModel, Field
 
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     login_url: str
     username: str
 
 
 class SecureParams(BaseModel):
+    """Secure parameters for this workflow."""
     password: Secure[str] = Field(min_length=1, description="Account password")
 
 
 class Result(BaseModel):
+    """Output returned by this workflow."""
     success: bool
     error: str | None = None
 
@@ -29,29 +32,29 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     agent = Agent()
     computer = Computer()
 
-    # Open browser
+    # Open browser (UNRECOVERABLE if fails)
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
-    # Navigate to login page
+    # Navigate to login page (UNRECOVERABLE if fails)
     agent.execute(f"Navigate to {params.login_url}")
     if not agent.verify("Is the login form visible?", timeout=20):
-        return Result(success=False, error="Login page not found")
+        raise RuntimeError(f"Login page not found at {params.login_url}")
 
     # Enter username — clear field first
     agent.execute("Click the email or username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.username)
+    agent.execute("Select all text in the field using keyboard shortcut")
+    computer.press("BackSpace")
+    computer.type(params.username)
 
     # Enter password — value is never exposed in the sandbox
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.password, interval=0.01)
+    agent.execute("Select all text in the field using keyboard shortcut")
+    computer.press("BackSpace")
+    computer.type(secure_params.password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     # Dismiss any save-password popup
     if agent.verify("Is there a save password dialog or popup?", timeout=5):

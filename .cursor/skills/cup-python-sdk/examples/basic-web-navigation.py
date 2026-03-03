@@ -5,40 +5,34 @@ from pydantic import BaseModel, Field
 
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     website_url: str = Field(default="https://news.ycombinator.com", min_length=1)
     post_index: int = Field(default=0, ge=0)
 
 
 class Result(BaseModel):
-    success: bool
-    title: str | None = None
-    error: str | None = None
+    """Output returned by this workflow."""
+    title: str
 
 
 def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
 
-    # Open browser
+    # Open browser (UNRECOVERABLE if fails)
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
-    # Navigate to website
+    # Navigate to website (UNRECOVERABLE if fails)
     agent.execute(f"Navigate to {params.website_url}")
-    if not agent.verify("Is the website loaded in the browser?", timeout=20):
-        return Result(success=False, error="Failed to load website")
+    if not agent.verify("Is the website loaded in the browser?", timeout=30):
+        raise RuntimeError(f"Failed to load website at {params.website_url}")
 
     # Extract structured data
-    result = agent.extract(
+    data = agent.extract(
         f"What is the title of post {params.post_index + 1}?",
-        schema={
-            "type": "object",
-            "properties": {
-                "title": {"type": "string"}
-            },
-            "required": ["title"]
-        }
+        Result.model_json_schema()
     )
 
-    return Result(success=True, title=result.get("title"))
+    return Result.model_construct(**data)

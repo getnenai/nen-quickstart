@@ -45,29 +45,34 @@ from nen import Secure
 from pydantic import BaseModel, Field
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     # Non-sensitive input fields
     field_name: str = Field(description="...", min_length=1)
     username: str = Field(min_length=1)
 
 class SecureParams(BaseModel):
+    """Secure parameters for this workflow."""
     # Sensitive fields only — values are never exposed in the sandbox
+    # CRITICAL: SecureParams fields NEVER use default= — platform injects at runtime
     password: Secure[str] = Field(min_length=1, description="Account password")
-    api_key: Secure[str] = Field(description="API key")  # only if needed
+    api_key: Secure[str] = Field(min_length=1, description="API key")  # only if needed
 
 class Result(BaseModel):
-    # Result should include success: bool
-    success: bool
-    extracted_data: dict | None = None
-    error: str | None = None
+    """Output returned by this workflow."""
+    # Result models actual data being extracted/returned
+    customer_id: str = Field(min_length=1)
+    account_balance: float
+    last_login: str
 ```
 
 Rules:
 - Use `Field()` with defaults and validators where appropriate
 - **Passwords, tokens, and API keys go in `SecureParams` with `Secure[str]`** — not in `Params`
+- **`SecureParams` fields NEVER use `default=`** — the platform injects secrets at runtime
 - If there are no secrets, omit `SecureParams` entirely
 - Use `list[str]`, `list[dict]`, `dict | None` for complex types
-- `Result` should include `success: bool`
-- Set `error: str | None = None` in `Result` for failure messages
+- **Result models actual data, not success/failure envelope**
+- **NO `success: bool` or `error: str | None` in Result** — use `raise` for all failures
 
 ### 4. Map actions to SDK calls
 
@@ -76,83 +81,115 @@ Rules:
 | Open browser | `agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")` |
 | Navigate / open URL | `agent.execute(f"Navigate to {params.url}")` |
 | Click element | `agent.execute("Click the [specific element name and location]")` |
-| Type text | `computer.keyboard.type(params.field)` (after clearing field with `ctrl+a` + `BackSpace`) |
-| Type password/secret | `computer.keyboard.type(secure_params.password, interval=0.01)` — field must be `Secure[str]` in `SecureParams` |
-| Press key | `computer.keyboard.press("Return")` |
-| Key combo | `computer.keyboard.hotkey("ctrl", "a")` — always use `ctrl`, never `command` |
+| Type text | `computer.type(params.field)` — just type directly, no need to clear |
+| Type password/secret | `computer.type(secure_params.password, interval=0.01)` — field must be `Secure[str]` in `SecureParams` |
+| Press key | `computer.press("Return")` |
 | Wait/check state | `agent.verify("Is [condition]?", timeout=N)` → returns bool |
-| Extract data | `agent.extract("Extract ...", schema={...})` → returns dict/list |
+| Extract data | `agent.extract("Extract ...", Result.model_json_schema())` → use with `Result.model_construct(**data)` |
 | Download file | See `examples/download-files.py` |
 | Loop over items | Python `for` loop with `agent.execute()` inside |
 | Save result to file | `os.makedirs("/artifacts", exist_ok=True)` then write to `/artifacts/` |
-| Workflow failure | `return Result(success=False, error="descriptive message")` |
+| **ALL failures** | `raise RuntimeError("descriptive message")` — browser, site, login, extraction, ANY failure |
 
 ### 5. Write the workflow
 
 Assemble the `run()` function following this structure:
 
 ```python
+"""
+Workflow: [Name]
+
+Description of what this workflow does.
+"""
 from nen import Agent, Computer, Secure
 from pydantic import BaseModel, Field
 
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     url: str = Field(min_length=1)
     username: str = Field(min_length=1)
 
 
 class SecureParams(BaseModel):  # omit entirely if no secrets
+    """Secure parameters for this workflow."""
+    # NEVER use default= on SecureParams fields
     password: Secure[str] = Field(min_length=1, description="Login password")
 
 
 class Result(BaseModel):
-    success: bool
-    data: dict | None = None
-    error: str | None = None
+    """Output returned by this workflow."""
+    username: str
+    email: str
+    account_status: str
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:  # drop secure_params if no secrets
+    """
+    Main workflow entry point.
+
+    Args:
+        params: Pydantic model with workflow input parameters
+        secure_params: Pydantic model with secure parameters
+
+    Returns:
+        Result model with workflow results
+    """
     agent = Agent()
     computer = Computer()
 
-    # Phase 1: Open browser
+    # Phase 1: Open browser (UNRECOVERABLE if fails → raise)
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
-    # Phase 2: Navigate
+    # Phase 2: Navigate (UNRECOVERABLE if fails → raise)
     agent.execute(f"Navigate to {params.url}")
-    if not agent.verify("Is the page loaded?", timeout=20):
-        return Result(success=False, error="Failed to load page")
+    if not agent.verify("Is the page loaded?", timeout=30):
+        raise RuntimeError(f"Failed to load page at {params.url}")
 
-    # Phase 3: Perform actions
-    agent.execute("Click the [element]")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.url)
+    # Phase 3: Login
+    agent.execute("Click the username field")
+    computer.type(params.username)
+    
+    agent.execute("Click the password field")
+    computer.type(secure_params.password, interval=0.01)
+    
+    agent.execute("Click the login button")
 
-    # Phase 4: Verify result — check failure FIRST
+    # Phase 4: Verify result — check FAILURE indicators FIRST
+    if agent.verify("Are we still on the login page?", timeout=10):
+        raise RuntimeError("Login failed - still on login page")
+    
     if agent.verify("Is there an error message visible?"):
-        return Result(success=False, error="Action failed - error message shown")
+        raise RuntimeError("Login failed - error message displayed")
+    
+    if not agent.verify("Is the dashboard visible?", timeout=20):
+        raise RuntimeError("Unable to verify login state - dashboard not found")
 
     # Phase 5: Extract results
-    data = agent.extract("Extract ...", schema={...})
+    data = agent.extract("Extract user info", Result.model_json_schema())
 
-    # Phase 6: Return
-    return Result(success=True, data=data)
+    # Phase 6: Return data
+    return Result.model_construct(**data)
 ```
 
 ### 6. Review the output
 
 Verify:
 - [ ] Every JSON step has a corresponding Python call
-- [ ] `Result` includes `success: bool`
+- [ ] **`Result` models actual data** — no `success: bool` or `error: str | None` fields
+- [ ] **ALL failures use `raise`** — never return Result(success=False)
 - [ ] `agent.execute()` calls use `agent.verify()` checks after critical actions
-- [ ] Error handling uses `return Result(success=False, error=...)` — not `raise`
 - [ ] Pydantic models match the JSON input/output schema
 - [ ] Natural language in `agent.execute()` is specific (element name, location, color)
-- [ ] Fields are cleared before typing (`ctrl+a` + `BackSpace`)
-- [ ] Keyboard uses Linux modifiers (`ctrl` not `command`)
-- [ ] Failure indicators are checked before success indicators in `agent.verify()`
+- [ ] **Keyboard uses `computer.type()` and `computer.press()`** — NOT `computer.keyboard.type()`
+- [ ] **DO NOT clear fields before typing** — just type directly into clicked fields
+- [ ] **DO NOT use `computer.hotkey()`** — it is broken and unreliable
+- [ ] **Failure indicators are checked FIRST** before success indicators in `agent.verify()`
 - [ ] All secrets use `Secure[str]` in `SecureParams` — never in `Params`
+- [ ] **`SecureParams` fields do NOT use `default=`** — platform injects at runtime
 - [ ] `run()` signature includes `secure_params: SecureParams` if secrets are present
+- [ ] Docstrings use standard Python format (no `\n` or `\"""` escaping)
+- [ ] Timeouts are appropriate for slow operations (20-30s for page loads)
+- [ ] Use `agent.extract()` with `Result.model_json_schema()` and `Result.model_construct(**data)`

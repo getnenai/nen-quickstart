@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     patient_name: str = Field(min_length=1)
     system_a_url: str
     system_b_url: str
@@ -20,14 +21,15 @@ class Params(BaseModel):
 
 
 class SecureParams(BaseModel):
+    """Secure parameters for this workflow."""
     system_a_password: Secure[str] = Field(min_length=1, description="System A login password")
     system_b_password: Secure[str] = Field(min_length=1, description="System B login password")
 
 
 class Result(BaseModel):
-    success: bool
-    patient: str | None = None
-    error: str | None = None
+    """Output returned by this workflow."""
+    patient_name: str
+    message: str
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:
@@ -35,34 +37,30 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     agent = Agent()
     computer = Computer()
 
-    # Open browser
+    # Open browser (UNRECOVERABLE if fails)
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
-    # Step 1: Login to System A and extract data
+    # Step 1: Login to System A and extract data (UNRECOVERABLE if fails)
     agent.execute(f"Navigate to {params.system_a_url}")
     if not agent.verify("Is System A login page visible?", timeout=20):
-        return Result(success=False, error="Could not reach System A")
+        raise RuntimeError(f"Could not reach System A at {params.system_a_url}")
 
     agent.execute("Click the username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.system_a_username)
+    computer.type(params.system_a_username)
 
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.system_a_password, interval=0.01)
+    computer.type(secure_params.system_a_password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if not agent.verify("Is System A dashboard visible?", timeout=20):
-        return Result(success=False, error="System A login failed")
+        raise RuntimeError("System A login failed")
 
     agent.execute(f"Search for patient '{params.patient_name}'")
     if not agent.verify(f"Is patient '{params.patient_name}' profile visible?", timeout=15):
-        return Result(success=False, error="Patient not found in System A")
+        raise RuntimeError(f"Patient '{params.patient_name}' not found in System A")
 
     # Extract patient data
     source_data = agent.extract(
@@ -83,33 +81,32 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     agent.execute(f"Open a new tab and navigate to {params.system_b_url}")
 
     if not agent.verify("Is System B login page visible?", timeout=20):
-        return Result(success=False, error="Could not reach System B")
+        raise RuntimeError("Could not reach System B")
 
     agent.execute("Click the username field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(params.system_b_username)
+    computer.type(params.system_b_username)
 
     agent.execute("Click the password field")
-    computer.keyboard.hotkey("ctrl", "a")
-    computer.keyboard.press("BackSpace")
-    computer.keyboard.type(secure_params.system_b_password, interval=0.01)
+    computer.type(secure_params.system_b_password, interval=0.01)
 
-    computer.keyboard.press("Return")
+    computer.press("Return")
 
     if not agent.verify("Is System B main window visible?", timeout=20):
-        return Result(success=False, error="System B login failed")
+        raise RuntimeError("System B login failed")
 
     patient_name_val = source_data.get("name")
     patient_dob_val = source_data.get("dob")
     if not patient_name_val or not patient_dob_val:
-        return Result(success=False, error="Extracted patient data is missing required name or dob fields")
+        raise ValueError("Extracted patient data is missing required name or dob fields")
 
     agent.execute("Click the Add New Patient button")
     agent.execute(f"Fill in the patient form: Name = {patient_name_val}, DOB = {patient_dob_val}")
     agent.execute("Click Save")
 
     if not agent.verify(f"Is patient '{params.patient_name}' record saved successfully?", timeout=15):
-        return Result(success=False, error="Failed to save patient in System B")
+        raise RuntimeError("Failed to save patient in System B")
 
-    return Result(success=True, patient=params.patient_name)
+    return Result(
+        patient_name=params.patient_name,
+        message="Patient successfully transferred from System A to System B"
+    )

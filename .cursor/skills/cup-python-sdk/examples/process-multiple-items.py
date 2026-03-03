@@ -12,10 +12,12 @@ from pydantic import BaseModel
 
 
 class Params(BaseModel):
+    """Input parameters for this workflow."""
     provider_names: list[str]
 
 
 class Result(BaseModel):
+    """Output returned by this workflow."""
     data: list[dict] = []
 
 

@@ -576,10 +576,10 @@ computer.keyboard.press("Escape")
 computer.keyboard.press("BackSpace")
 
 # Keyboard shortcuts (Linux key names!)
-agent.execute("Select all text using keyboard shortcut")          # select all
-agent.execute("Copy using keyboard shortcut")          # copy
-agent.execute("Paste using keyboard shortcut")          # paste
-agent.execute("Save As using keyboard shortcut") # save as
+computer.hotkey("ctrl", "a")          # select all
+computer.hotkey("ctrl", "c")          # copy
+computer.hotkey("ctrl", "v")          # paste
+computer.hotkey("ctrl", "shift", "s") # save as
 ```
 
 ### Mouse
@@ -1091,12 +1091,12 @@ def run(params: Params, secure_params: SecureParams) -> Result:
         return Result(success=False, error="Login page not found")
 
     agent.execute("Click the username or email field")
-    agent.execute("Select all text using keyboard shortcut")
+    computer.hotkey("ctrl", "a")
     computer.keyboard.press("BackSpace")
     computer.keyboard.type(params.username)
 
     agent.execute("Click the password field")
-    agent.execute("Select all text using keyboard shortcut")
+    computer.hotkey("ctrl", "a")
     computer.keyboard.press("BackSpace")
     computer.keyboard.type(secure_params.password, interval=0.01)
 
@@ -1220,11 +1220,11 @@ data = agent.extract("Get confirmation number", schema=schema)
 **Pitfall 4: Using macOS Keyboard Commands**
 
 ```python
-# BAD - Crashes on Linux
-# DO NOT USE - computer.hotkey() is broken
+# BAD - Crashes on Linux (no "command" key in xdotool)
+computer.hotkey("command", "a")
 
 # GOOD - Linux-compatible
-agent.execute("Select all text using keyboard shortcut")
+computer.hotkey("ctrl", "a")
 ```
 
 **Pitfall 5: Not Clearing Input Fields**

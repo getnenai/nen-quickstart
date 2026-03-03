@@ -16,28 +16,28 @@ alwaysApply: false
 
 ### Platform Compatibility
 
-**CRITICAL: Do NOT use `computer.hotkey()` - it is broken and unreliable.**
-
-Use `agent.execute()` for key combinations instead:
+**Always use Linux/Windows keyboard modifiers, NOT macOS:**
 
 ```python
-# ❌ WRONG - computer.hotkey() is broken
+# ❌ WRONG - macOS only (will crash with xdotool error)
+computer.hotkey("command", "a")
+computer.hotkey("command", "c")
+
+# ✅ CORRECT - Linux/Windows (works in workflow container)
 computer.hotkey("ctrl", "a")
 computer.hotkey("ctrl", "c")
-
-# ✅ CORRECT - use agent.execute() for key combinations
-agent.execute("Select all text in the field using keyboard shortcut")
-agent.execute("Copy the selected text using keyboard shortcut")
 ```
 
-**For simple actions, just use direct commands:**
-- Type text: `computer.type(text)`
-- Press single key: `computer.press("Return")`
-- Do NOT clear fields - just type directly
+**Common key mappings:**
+- Select All: `computer.hotkey("ctrl", "a")` (not "command")
+- Copy: `computer.hotkey("ctrl", "c")` (not "command")
+- Paste: `computer.hotkey("ctrl", "v")` (not "command")
+- Cut: `computer.hotkey("ctrl", "x")` (not "command")
+- Save: `computer.hotkey("ctrl", "s")` (not "command")
 
 ### xdotool Key Names
 
-Valid key names for `computer.press()`:
+Valid key names for `computer.press()` and `computer.hotkey()`:
 
 **Modifier keys:**
 - `ctrl` - Control key (Linux/Windows)
@@ -82,10 +82,9 @@ agent.execute("Click the password field")
 computer.type(secure_params.password, interval=0.01)
 ```
 
-**Do NOT use field clearing patterns:**
-- ❌ Do NOT use `computer.hotkey()` (broken)
-- ❌ Do NOT select all and delete before typing
-- ✅ Just click the field and type directly
+**To clear fields before typing:**
+- Use `computer.hotkey("ctrl", "a")` then `computer.press("BackSpace")`
+- Or just type directly if the field is empty
 
 ### Validation Strategies
 
@@ -370,18 +369,14 @@ computer.keyboard.press("BackSpace")
 computer.keyboard.press("Tab")
 ```
 
-#### ~~computer.keyboard.hotkey(*keys)~~ [DEPRECATED - DO NOT USE]
-
-**CRITICAL: This method is broken and unreliable. Do NOT use it.**
-
-Use `agent.execute()` for key combinations instead:
+#### computer.hotkey(*keys)
+Press multiple keys simultaneously (modifier combos). Use Linux key names only.
 
 ```python
-# ❌ WRONG - computer.hotkey() is broken
-computer.keyboard.hotkey("ctrl", "a")
-
-# ✅ CORRECT - use agent.execute()
-agent.execute("Select all text using double click")
+computer.hotkey("ctrl", "a")    # Select all
+computer.hotkey("ctrl", "c")    # Copy
+computer.hotkey("ctrl", "v")    # Paste
+computer.hotkey("shift", "Tab") # Reverse tab
 ```
 
 #### computer.mouse.click_at(x, y, button="left")

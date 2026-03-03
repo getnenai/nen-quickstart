@@ -264,10 +264,10 @@ computer.keyboard.press("Escape")
 computer.keyboard.press("BackSpace")
 
 # Keyboard shortcuts (Linux only — use ctrl, NOT command)
-agent.execute("Copy using keyboard shortcut")           # Copy
-agent.execute("Paste using keyboard shortcut")           # Paste
-agent.execute("Select all text using keyboard shortcut")           # Select all
-agent.execute("Save As using keyboard shortcut")  # Save As
+computer.hotkey("ctrl", "c")           # Copy
+computer.hotkey("ctrl", "v")           # Paste
+computer.hotkey("ctrl", "a")           # Select all
+computer.hotkey("ctrl", "shift", "s")  # Save As
 ```
 
 **keyboard.type() parameters:**
@@ -780,13 +780,13 @@ schema = {
 ```python
 # Problem: xdotool error with "command" key
 # Solution: Use "ctrl" instead
-agent.execute("Select all text using keyboard shortcut")   # ✅ Linux
-# DO NOT USE - computer.hotkey() is broken  # ❌ macOS only
+computer.hotkey("ctrl", "a")   # ✅ Linux
+computer.hotkey("command", "a")  # ❌ macOS only — crashes on Linux
 
 # Problem: Text concatenating in field
 # Solution: Clear field first
 agent.execute("Click the field")
-agent.execute("Select all text using keyboard shortcut")
+computer.hotkey("ctrl", "a")
 computer.keyboard.press("BackSpace")
 computer.keyboard.type(params.text)
 ```

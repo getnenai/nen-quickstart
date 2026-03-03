@@ -183,9 +183,8 @@ Verify:
 - [ ] `agent.execute()` calls use `agent.verify()` checks after critical actions
 - [ ] Pydantic models match the JSON input/output schema
 - [ ] Natural language in `agent.execute()` is specific (element name, location, color)
-- [ ] **Keyboard uses `computer.type()` and `computer.press()`** — NOT `computer.keyboard.type()`
-- [ ] **DO NOT clear fields before typing** — just type directly into clicked fields
-- [ ] **DO NOT use `computer.hotkey()`** — it is broken and unreliable
+- [ ] **Keyboard calls are flat** — use `computer.type()`, `computer.press()`, and `computer.hotkey()` NOT `computer.keyboard.type()` etc.
+- [ ] **Keyboard shortcuts use Linux key names** — `ctrl`, not `command` (e.g. `computer.hotkey("ctrl", "a")`)
 - [ ] **Failure indicators are checked FIRST** before success indicators in `agent.verify()`
 - [ ] All secrets use `Secure[str]` in `SecureParams` — never in `Params`
 - [ ] **`SecureParams` fields do NOT use `default=`** — platform injects at runtime

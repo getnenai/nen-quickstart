@@ -97,7 +97,7 @@ Before validating and deploying your workflow, verify these common issues:
 - [ ] Agent descriptions are specific: "Click the blue 'Submit' button" not "Click submit"
 - [ ] Sensitive data (passwords, tokens) not logged
 - [ ] **`SecureParams` fields do NOT use `default=`** — the platform injects secrets at runtime; use `Field(min_length=1, description="...")` only
-- [ ] **Computer keyboard calls are flat** — use `computer.type()` and `computer.press()` NOT `computer.keyboard.type()` etc. Do NOT use `computer.hotkey()` (broken); use `agent.execute()` for key combinations instead
+- [ ] **Computer keyboard calls are flat** — use `computer.type()`, `computer.press()`, and `computer.hotkey()` NOT `computer.keyboard.type()` etc. Use Linux key names only (`ctrl`, not `command`)
 
 ### ✅ Python Syntax
 - [ ] **Docstrings use standard Python format** (no `\n` or `\"""` escaping)
@@ -409,7 +409,7 @@ Automates login to the EzyVet trial portal using provided credentials.
 
 ### 1. Platform-Specific Keyboard Commands ❌
 
-**Problem:** Using `computer.hotkey()` or macOS-style key combinations
+**Problem:** Using macOS-style key names like `"command"` in `computer.hotkey()`
 
 **Symptom:**
 ```
@@ -417,15 +417,14 @@ ERROR: xdotool key command failed: (symbol) No such key name 'command'
 WorkflowError: Keyboard hotkey failed
 ```
 
-**Solution:** Do NOT use `computer.hotkey()` — it is unreliable. Use `agent.execute()` to describe key combinations in natural language.
+**Solution:** Use Linux key names. `computer.hotkey()` works — just use `ctrl` instead of `command`.
 
 ```python
-# ❌ WRONG - computer.hotkey() is broken
+# ❌ WRONG - macOS key name crashes on Linux
 computer.hotkey("command", "a")
-computer.hotkey("ctrl", "a")
 
-# ✅ CORRECT - use agent.execute() for key combinations
-agent.execute("Select all text in the field using keyboard shortcut")
+# ✅ CORRECT - Linux key names work
+computer.hotkey("ctrl", "a")
 ```
 
 ### 2. Verification False Positives ❌

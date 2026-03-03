@@ -56,8 +56,7 @@ cd mcp-quickstart
 4. **Organize your workflow:**
    ```
    workflows/
-   └── my_workflows/
-       └── your-workflow-name/
+   └── your-workflow-name/
            ├── orchestrator.json
            ├── 01_launch_browser.json
            ├── 02_login.json
@@ -205,7 +204,7 @@ Before submitting, test your workflow thoroughly:
 1. **Upload to platform:**
    ```typescript
    nen_upload({
-     localPath: "./workflows/my_workflows/your-workflow",
+     localPath: "./workflows/your-workflow",
      orgName: "test-org",
      orgId: "your-org-id",
      deploymentName: "dev",

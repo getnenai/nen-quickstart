@@ -35,7 +35,7 @@ Python-based workflows use the `nen` SDK with `Agent` and `Computer`.
 
 **File structure:**
 ```
-workflows/my_workflows/my-workflow/
+workflows/my-workflow/
 └── workflow.py    # Python handler function
 ```
 
@@ -124,7 +124,7 @@ Automates login to the EzyVet trial portal using provided credentials.
 
 ```python
 # Read the workflow file
-workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
+workflow_content = Read("workflows/[workflow-name]/workflow.py")
 
 # Validate it
 nen_validate(content=workflow_content, filename="workflow.py")
@@ -193,9 +193,9 @@ if not agent.verify("Is the Chromium browser open?", timeout=10):
     raise RuntimeError("Failed to open Chromium browser")  # unrecoverable
 
 # Navigate to target URL
-agent.execute(f"Navigate to {params.url}")
+agent.execute(f"Navigate to {params.website_url}")
 if not agent.verify("Is the page loaded?", timeout=20):
-    raise RuntimeError(f"Failed to load page at {params.url}")  # unrecoverable
+    raise RuntimeError(f"Failed to load page at {params.website_url}")  # unrecoverable
 ```
 
 ### Login Workflow

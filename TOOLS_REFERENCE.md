@@ -116,7 +116,7 @@ Upload workflow files to the NenAI platform.
 
 ```typescript
 nen_upload({
-  localPath: "./workflows/my_workflows/patient-search",
+  localPath: "./workflows/patient-search",
   deploymentName: "pulse",
   workflowId: "123e4567-e89b-12d3-a456-426614174000"
 })
@@ -454,7 +454,7 @@ Agent: "Create a workflow that searches for patients and downloads their records
 ↓
 Uses: nen_create_workflow
 ↓
-Output: FSM files in ./workflows/my_workflows/patient-search/
+Output: FSM files in ./workflows/patient-search/
 ```
 
 ### 2. Review & Edit

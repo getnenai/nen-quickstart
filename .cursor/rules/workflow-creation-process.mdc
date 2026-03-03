@@ -52,7 +52,7 @@ Create the Python SDK workflow file using `nen.workflow` primitives:
 
 1. **Create directory structure:**
    ```
-   workflows/my_workflows/[workflow-name]/
+   workflows/[workflow-name]/
    └── workflow.py
    ```
 
@@ -114,7 +114,7 @@ Validate the workflow using the NenAI validation tool before deployment:
 1. **Run validation:**
    ```python
    # Read the workflow file content
-   workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
+   workflow_content = Read("workflows/[workflow-name]/workflow.py")
    
    # Validate the workflow
    nen_validate(
@@ -153,7 +153,7 @@ Deploy to NenAI platform using MCP tools:
    For NEW workflows:
    ```python
    # First, read the workflow file content
-   workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
+   workflow_content = Read("workflows/[workflow-name]/workflow.py")
    
    # Then upload using files parameter
    nen_upload(
@@ -168,7 +168,7 @@ Deploy to NenAI platform using MCP tools:
    For UPDATING existing workflows:
    ```python
    # Read the workflow file content
-   workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
+   workflow_content = Read("workflows/[workflow-name]/workflow.py")
    
    # Update using files parameter with workflowId
    nen_upload(
@@ -310,7 +310,7 @@ User: "Create a workflow to login to example.com"
 
 AI Actions:
 1. BUILD:
-   - Create workflows/my_workflows/example-login/workflow.py
+   - Create workflows/example-login/workflow.py
    - Author Python SDK code with Agent, Computer, agent.execute(), agent.verify(), etc.
    - Check syntax with ReadLints
 
@@ -357,7 +357,7 @@ When editing, updating, or fixing a workflow:
 2. **Immediately validate:**
    ```python
    # Read the updated workflow file
-   workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
+   workflow_content = Read("workflows/[workflow-name]/workflow.py")
    
    # Validate the changes
    nen_validate(

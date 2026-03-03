@@ -8,7 +8,7 @@ Demonstrates:
 """
 
 from pathlib import Path
-from nen import Agent, Computer
+from nen import Agent
 from pydantic import BaseModel, Field
 
 ARTIFACTS_DIR = Path("/artifacts")
@@ -19,15 +19,12 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
     downloaded: int = 0
     files: list[str] = []
-    error: str | None = None
 
 
 def run(params: Params) -> Result:
     agent = Agent()
-    computer = Computer()
 
     # Clear previous downloads
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -38,7 +35,7 @@ def run(params: Params) -> Result:
     agent.execute(f"Navigate to patient '{params.patient_name}' documents")
 
     if not agent.verify("Is the documents list visible?", timeout=15):
-        return Result(success=False, error="Documents list not visible")
+        raise RuntimeError("Documents list not visible")
 
     # Discover available documents
     documents = agent.extract(
@@ -61,6 +58,6 @@ def run(params: Params) -> Result:
         downloaded_files.append(doc)
 
     if not downloaded_files:
-        return Result(success=False, error="No documents were downloaded successfully")
+        raise RuntimeError("No documents were downloaded successfully")
 
-    return Result(success=True, downloaded=len(downloaded_files), files=downloaded_files)
+    return Result(downloaded=len(downloaded_files), files=downloaded_files)

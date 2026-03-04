@@ -1,4 +1,4 @@
-# NenAI MCP Quickstart
+# Nen Quickstart
 
 Build computer use automations using natural language in Cursor. Author, test, and run browser automation workflows directly from your IDE.
 

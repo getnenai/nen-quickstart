@@ -832,18 +832,19 @@ def run(params: Params) -> Result:
 def authenticate(agent, computer, params):
     agent.execute(f"Navigate to {params.login_url}")
     if not agent.verify("Is the login form visible?", timeout=20):
-        return False
+        raise RuntimeError("Login page not found or failed to load")
     agent.execute("Click the username or email field")
     computer.hotkey("ctrl", "a")
     computer.press("BackSpace")
     computer.type(params.username)
     # ...
-    return agent.verify("Is the dashboard visible?", timeout=20)
+    if not agent.verify("Is the dashboard visible?", timeout=20):
+        raise RuntimeError("Authentication failed — dashboard not visible after login")
 
 
 def extract_data(agent):
     if not agent.verify("Is the data table visible?"):
-        return []
+        raise RuntimeError("Data table not found — cannot extract rows")
     return agent.extract("Extract all rows", schema={...})
 ```
 

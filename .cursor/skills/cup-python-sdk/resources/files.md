@@ -132,9 +132,9 @@ def run(params: Params) -> Result:
 
     # Verify the file was created
     if not os.path.exists("/artifacts/appointments.json"):
-        return Result(success=False, error="Failed to save appointments file")
+        raise RuntimeError("Failed to save appointments file")
 
-    return Result(success=True)
+    return Result()
 ```
 
 ---
@@ -151,9 +151,9 @@ result = os.popen("ls /artifacts/*.pdf 2>/dev/null | wc -l").read().strip()
 num_docs = int(result) if result.isdigit() else 0
 
 if num_docs == 0:
-    return Result(success=False, error="No PDF documents were downloaded")
+    raise RuntimeError("No PDF documents were downloaded")
 
-return Result(success=True, documents_downloaded=num_docs)
+return Result(documents_downloaded=num_docs)
 ```
 
 ---

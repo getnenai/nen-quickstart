@@ -15,10 +15,8 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    demographics: dict | None = None
+    demographics: dict
     visits: list[dict] = []
-    error: str | None = None
 
 
 def run(params: Params) -> Result:
@@ -29,7 +27,7 @@ def run(params: Params) -> Result:
     agent.execute(f"Search for and open patient '{params.patient_name}'")
 
     if not agent.verify(f"Is patient profile for '{params.patient_name}' visible?", timeout=20):
-        return Result(success=False, error="Patient not found")
+        raise RuntimeError(f"Patient '{params.patient_name}' not found")
 
     # Extract patient demographics
     demographics = agent.extract(
@@ -62,4 +60,4 @@ def run(params: Params) -> Result:
         }
     )
 
-    return Result(success=True, demographics=demographics, visits=visits)
+    return Result(demographics=demographics, visits=visits)

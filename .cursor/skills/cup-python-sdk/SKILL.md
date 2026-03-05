@@ -31,9 +31,7 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    title: str | None = None
-    error: str | None = None
+    title: str = Field(min_length=1, description="Page title extracted from the site")
 
 
 def run(params: Params) -> Result:
@@ -42,19 +40,14 @@ def run(params: Params) -> Result:
 
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     agent.execute(f"Navigate to {params.url}")
     if not agent.verify("Is the page loaded?", timeout=20):
-        return Result(success=False, error="Failed to load page")
+        raise RuntimeError(f"Failed to load {params.url}")
 
-    data = agent.extract("What is the page title?", schema={
-        "type": "object",
-        "properties": {"title": {"type": "string"}},
-        "required": ["title"]
-    })
-
-    return Result(success=True, title=data.get("title"))
+    data = agent.extract("What is the page title?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ## Examples

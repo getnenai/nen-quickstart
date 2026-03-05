@@ -21,8 +21,7 @@ class SecureParams(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    error: str | None = None
+    account_name: str = Field(min_length=1, description="Account name shown after login")
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:
@@ -32,12 +31,12 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     # Open browser
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     # Navigate to login page
     agent.execute(f"Navigate to {params.login_url}")
     if not agent.verify("Is the login form visible?", timeout=20):
-        return Result(success=False, error="Login page not found")
+        raise RuntimeError("Login page not found or failed to load")
 
     # Enter username — clear field first
     agent.execute("Click the email or username field")
@@ -59,10 +58,11 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     # Check failure first, then success
     if agent.verify("Are we still on the login page?", timeout=10):
-        return Result(success=False, error="Login failed - still on login page")
-    elif agent.verify("Is there an error message visible?"):
-        return Result(success=False, error="Login failed - error message displayed")
-    elif agent.verify("Is the dashboard or main page visible?", timeout=20):
-        return Result(success=True)
-    else:
-        return Result(success=False, error="Unable to verify login state")
+        raise RuntimeError("Login failed — still on login page after submitting credentials")
+    if agent.verify("Is there an error message visible?"):
+        raise RuntimeError("Login failed — error message displayed")
+    if not agent.verify("Is the dashboard or main page visible?", timeout=20):
+        raise RuntimeError("Unable to confirm login — dashboard not visible")
+
+    data = agent.extract("What is the account name shown on the page?", Result.model_json_schema())
+    return Result.model_construct(**data)

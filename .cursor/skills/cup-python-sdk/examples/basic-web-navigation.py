@@ -10,9 +10,7 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    title: str | None = None
-    error: str | None = None
+    title: str
 
 
 def run(params: Params) -> Result:
@@ -22,23 +20,17 @@ def run(params: Params) -> Result:
     # Open browser
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     # Navigate to website
     agent.execute(f"Navigate to {params.website_url}")
     if not agent.verify("Is the website loaded in the browser?", timeout=20):
-        return Result(success=False, error="Failed to load website")
+        raise RuntimeError(f"Failed to load {params.website_url}")
 
     # Extract structured data
-    result = agent.extract(
+    data = agent.extract(
         f"What is the title of post {params.post_index + 1}?",
-        schema={
-            "type": "object",
-            "properties": {
-                "title": {"type": "string"}
-            },
-            "required": ["title"]
-        }
+        Result.model_json_schema()
     )
 
-    return Result(success=True, title=result.get("title"))
+    return Result.model_construct(**data)

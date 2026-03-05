@@ -99,25 +99,23 @@ Polls until the condition is met or the timeout expires. Returns `True` if the c
 ```python
 # Check browser opened
 if not agent.verify("Is the Chromium browser open?", timeout=10):
-    return Result(success=False, error="Failed to open browser")
+    raise RuntimeError("Failed to open Chromium browser")
 
 # Check page loaded
 if not agent.verify("Is the website loaded in the browser?", timeout=20):
-    return Result(success=False, error="Failed to load website")
+    raise RuntimeError("Failed to load website")
 
 # Check failure FIRST, then success (more reliable pattern)
 if agent.verify("Are we still on the login page?", timeout=10):
-    return Result(success=False, error="Login failed - still on login page")
-elif agent.verify("Is there an error message visible?"):
-    return Result(success=False, error="Login failed - error message displayed")
-elif agent.verify("Is the dashboard visible?", timeout=20):
-    return Result(success=True)
-else:
-    return Result(success=False, error="Unable to verify login state")
+    raise RuntimeError("Login failed — still on login page after submitting credentials")
+if agent.verify("Is there an error message visible?"):
+    raise RuntimeError("Login failed — error message displayed")
+if not agent.verify("Is the dashboard visible?", timeout=20):
+    raise RuntimeError("Unable to confirm login — dashboard not visible")
 
 # Longer timeout for slow operations
 if not agent.verify("Has the file finished downloading?", timeout=30):
-    return Result(success=False, error="Download timed out")
+    raise RuntimeError("Download timed out")
 ```
 
 > **Tip:** Be specific in verification questions. "Is there an 'Invalid email' error message visible?" is better than "Did it work?". Always check failure indicators before success indicators.

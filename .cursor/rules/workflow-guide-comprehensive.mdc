@@ -118,9 +118,7 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    url: str | None = None
-    error: str | None = None
+    url: str = Field(min_length=1, description="The URL that was successfully loaded")
 
 
 def run(params: Params) -> Result:
@@ -138,13 +136,13 @@ def run(params: Params) -> Result:
 
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     agent.execute(f"Navigate to {params.website_url}")
     if not agent.verify("Is the website loaded?", timeout=20):
-        return Result(success=False, error="Failed to load website")
+        raise RuntimeError(f"Failed to load {params.website_url}")
 
-    return Result(success=True, url=params.website_url)
+    return Result(url=params.website_url)
 ```
 
 ### Params and Return Values
@@ -173,19 +171,14 @@ class Params(BaseModel):
 
 **Result Model:**
 
-Define a Pydantic `Result` model with type hints:
+Define a Pydantic `Result` model with the workflow's output data fields. Do **not** add `success` or `error` — those are provided by the framework:
 
 ```python
 class Result(BaseModel):
-    # Always include success
-    success: bool
-    error: str | None = None
-
-    # Add workflow-specific fields
-    title: str | None = None
+    # Only workflow-specific output fields
+    title: str = Field(min_length=1)
     data: list[dict] = []
     count: int = 0
-    message: str | None = None
 ```
 
 ### Basic Example
@@ -201,9 +194,7 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    title: str | None = None
-    error: str | None = None
+    title: str = Field(min_length=1, description="Title of the requested post")
 
 
 def run(params: Params) -> Result:
@@ -213,24 +204,20 @@ def run(params: Params) -> Result:
     # 1. Open the browser
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     # 2. Navigate to URL
     agent.execute(f"Navigate to {params.website_url}")
     if not agent.verify("Is the website loaded in the browser?", timeout=20):
-        return Result(success=False, error="Failed to load website")
+        raise RuntimeError(f"Failed to load {params.website_url}")
 
     # 3. Extract structured data
     data = agent.extract(
         f"What is the title of the {params.title_number}th post on the page?",
-        schema={
-            "type": "object",
-            "properties": {"title": {"type": "string"}},
-            "required": ["title"]
-        }
+        Result.model_json_schema()
     )
 
-    return Result(success=True, title=data.get("title"))
+    return Result.model_construct(**data)
 ```
 
 ---
@@ -412,13 +399,11 @@ def run(params: Params) -> Result:
     agent.execute("Click the login button")
 
     # Wait for login to complete
-    if agent.verify("Is the dashboard visible?", timeout=20):
-        return process_dashboard()
-    else:
-        if agent.verify("Is there an error message?"):
-            return Result(success=False, error="Login failed")
-        else:
-            return Result(success=False, error="Unknown state after login")
+    if agent.verify("Is there an error message?"):
+        raise RuntimeError("Login failed — error message displayed")
+    if not agent.verify("Is the dashboard visible?", timeout=20):
+        raise RuntimeError("Login failed — dashboard not visible")
+    return process_dashboard()
 ```
 
 ### Best Practices for Verification Placement
@@ -429,20 +414,20 @@ def run(params: Params) -> Result:
    ```python
    agent.execute("Navigate to https://example.com")
    if not agent.verify("Is the example.com homepage visible?"):
-       return Result(success=False, error="Navigation failed")
+       raise RuntimeError("Navigation failed — example.com homepage not visible")
    ```
 
 2. **After Form Submission** - Check success/failure
    ```python
    agent.execute("Click submit")
-   if agent.verify("Is there a success message?"):
-       return Result(success=True)
+   if not agent.verify("Is there a success message?", timeout=10):
+       raise RuntimeError("Submission failed — no success message found")
    ```
 
 3. **Before Data Extraction** - Ensure data is present
    ```python
    if not agent.verify("Is the table with patient data visible?"):
-       return Result(success=False, error="Data not found")
+       raise RuntimeError("Patient data table not found")
    data = agent.extract("Extract patient names", schema=schema)
    ```
 
@@ -450,7 +435,7 @@ def run(params: Params) -> Result:
    ```python
    agent.execute("Click the 'Upload' tab")
    if not agent.verify("Is the Upload tab active?"):
-       return Result(success=False, error="Failed to switch tabs")
+       raise RuntimeError("Failed to switch to Upload tab")
    ```
 
 ### Timeout Considerations
@@ -643,19 +628,16 @@ def run(params: Params) -> Result:
 ### Returning Results from Workflow
 
 ```python
-# Minimal success
-return Result(success=True)
+# Return extracted data
+data = agent.extract("Extract patient info", Result.model_json_schema())
+return Result.model_construct(**data)
 
-# Failure with reason
-return Result(success=False, error="Error message")
+# Return constructed result with known fields
+return Result(data=[{"name": "John", "mrn": "12345"}], count=1)
 
-# Rich return data
-return Result(
-    success=True,
-    data=[{"name": "John", "mrn": "12345"}],
-    count=1,
-    message="Found 1 patient record"
-)
+# Raise for all failures — do not encode failures in Result
+if not patients:
+    raise RuntimeError("No patients found")
 ```
 
 ### Sensitive Data Handling
@@ -670,98 +652,82 @@ class SecureParams(BaseModel):
 
 def run(params: Params, secure_params: SecureParams) -> Result:
     computer = Computer()
-    # Use without logging
-    computer.type(secure_params.password, interval=0.01)
-
     # ❌ NEVER log sensitive values
     # print(f"Using password: {secure_params.password}")
 
-    return Result(success=True)
+    # Use without logging
+    computer.type(secure_params.password, interval=0.01)
 ```
 
 ---
 
 ## Error Handling
 
-### Return vs Raise
+All failures raise exceptions. `success` and `error` in the run webhook are provided by the framework automatically — they are **not** fields in `Result`.
 
-Return `Result(success=False, error="...")` — do **not** raise exceptions:
+### Raise for all failures
 
 ```python
-# ✅ CORRECT — structured failure
+# ✅ CORRECT — raise for failures
 if not agent.verify("Is the page loaded?", timeout=20):
-    return Result(success=False, error="Page failed to load")
-
-# ❌ WRONG — do not raise exceptions
-if not agent.verify("Is the page loaded?"):
     raise RuntimeError("Page failed to load")
+
+if agent.verify("Is there an error message?"):
+    raise RuntimeError("Login failed — error message displayed")
+
+data = agent.extract("Extract the order ID", Result.model_json_schema())
+if not data.get("order_id"):
+    raise ValueError("No order ID found on the page")
 ```
 
-### Try/Except Patterns
-
-**Pattern 1: Graceful Degradation**
+### Catch only for recovery (retry or alternative path)
 
 ```python
+# Pattern 1: Alternative path
 def run(params: Params) -> Result:
     agent = Agent()
     try:
         agent.execute("Click the blue submit button")
-    except Exception:
-        try:
-            agent.execute("Click any submit button")
-        except Exception as e:
-            return Result(success=False, error=f"Could not submit: {e}")
+    except WorkflowError:
+        agent.execute("Click any submit button")  # fallback
 
-    return Result(success=True)
+    if not agent.verify("Is there a success message?", timeout=10):
+        raise RuntimeError("Submission failed")
+    return Result()
 ```
 
-**Pattern 2: Checkpoint Recovery**
-
 ```python
+# Pattern 2: Retry
 def run(params: Params) -> Result:
     agent = Agent()
-    computer = Computer()
-    checkpoint = "start"
-
-    try:
-        checkpoint = "opening_browser"
-        agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
-
-        checkpoint = "navigating"
-        agent.execute(f"Navigate to {params.login_url}")
-
-        checkpoint = "logging_in"
-        agent.execute("Perform login")
-
-        checkpoint = "extracting_data"
-        data = agent.extract("Get user data", schema=schema)
-
-        return Result(success=True, data=data)
-
-    except Exception as e:
-        return Result(success=False, error=str(e), failed_at=checkpoint)
+    for attempt in range(3):
+        try:
+            agent.execute("Click Submit")
+            break
+        except WorkflowError:
+            if attempt == 2:
+                raise
+            agent.execute("Scroll down to find the Submit button")
 ```
 
-**Pattern 3: Partial Success Handling**
-
 ```python
+# Pattern 3: Partial success — continue on per-item failures, raise if nothing succeeded
 def run(params: Params) -> Result:
     agent = Agent()
     results = []
-    errors = []
 
     for item in params.items:
         try:
             data = process_item(agent, item)
             results.append({"item": item, "data": data})
         except Exception as e:
-            errors.append({"item": item, "error": str(e)})
+            results.append({"item": item, "error": str(e)})
+            continue
 
-    return Result(
-        success=len(results) > 0,
-        results=results,
-        errors=errors
-    )
+    if not any(r.get("data") for r in results):
+        raise RuntimeError("All items failed — no data extracted")
+
+    return Result(results=results)
 ```
 
 ---
@@ -782,7 +748,7 @@ def run(params: Params) -> Result:
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     print("Browser opened successfully")
 
-    return Result(success=True)
+    return Result()
 ```
 
 ### Using logging.info() for Structured Logs
@@ -803,7 +769,7 @@ def run(params: Params) -> Result:
         "data": data
     })
 
-    return Result(success=True)
+    return Result(data=data)
 ```
 
 ### Debugging Workflows with `get_run_logs()`
@@ -851,18 +817,16 @@ def run(params: Params) -> Result:
     # Phase 1: Open browser
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     # Phase 2: Authentication
-    auth_result = authenticate(agent, computer, params)
-    if not auth_result:
-        return Result(success=False, error="Authentication failed")
+    authenticate(agent, computer, params)  # raises on failure
 
     # Phase 3: Main workflow logic
-    data = extract_data(agent)
+    data = extract_data(agent)  # raises on failure
 
     # Phase 4: Return results
-    return Result(success=True, data=data)
+    return Result(data=data)
 
 
 def authenticate(agent, computer, params):
@@ -936,9 +900,7 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    results: list[str] = []
-    error: str | None = None
+    results: list[str] = Field(min_length=1, description="Titles of search results found")
 
 
 def run(params: Params) -> Result:
@@ -947,24 +909,24 @@ def run(params: Params) -> Result:
 
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     agent.execute(f"Navigate to {params.website_url}")
     if not agent.verify("Is the website loaded?", timeout=20):
-        return Result(success=False, error="Failed to load website")
+        raise RuntimeError(f"Failed to load {params.website_url}")
 
     agent.execute("Click the search box and type 'example query'")
     computer.press("Return")
 
     if not agent.verify("Are search results visible?", timeout=15):
-        return Result(success=False, error="No search results")
+        raise RuntimeError("No search results found")
 
     results = agent.extract(
         "Extract the titles of the first 5 search results",
         schema={"type": "array", "items": {"type": "string"}}
     )
 
-    return Result(success=True, results=results)
+    return Result(results=results)
 ```
 
 ### Pattern 2: Form Filling
@@ -981,8 +943,7 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    error: str | None = None
+    submitted: bool = Field(description="Whether the form was submitted successfully")
 
 
 def run(params: Params) -> Result:
@@ -991,11 +952,11 @@ def run(params: Params) -> Result:
 
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     agent.execute("Navigate to the contact form")
     if not agent.verify("Is the contact form visible?"):
-        return Result(success=False, error="Form not found")
+        raise RuntimeError("Contact form not found")
 
     agent.execute("Click the name field")
     computer.hotkey("ctrl", "a")
@@ -1015,16 +976,16 @@ def run(params: Params) -> Result:
 
     agent.execute("Click the submit button")
 
-    if agent.verify("Is there a success message?", timeout=10):
-        return Result(success=True)
-    elif agent.verify("Is there an error message?"):
+    if agent.verify("Is there an error message?"):
         error_data = agent.extract(
             "What is the error message?",
             schema={"type": "object", "properties": {"error": {"type": "string"}}}
         )
-        return Result(success=False, error=error_data.get("error", "Unknown error"))
-    else:
-        return Result(success=False, error="Submission status unclear")
+        raise RuntimeError(error_data.get("error", "Form submission failed with an error"))
+    if not agent.verify("Is there a success message?", timeout=10):
+        raise RuntimeError("Form submission status unclear — no success or error message found")
+
+    return Result(submitted=True)
 ```
 
 ### Pattern 3: Data Extraction
@@ -1039,10 +1000,8 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    total_patients: int = 0
-    patients: list[dict] = []
-    error: str | None = None
+    total_patients: int = Field(ge=1, description="Number of patients extracted")
+    patients: list[dict] = Field(min_length=1, description="Patient records extracted from the table")
 
 
 def run(params: Params) -> Result:
@@ -1051,11 +1010,11 @@ def run(params: Params) -> Result:
 
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     agent.execute(f"Navigate to {params.target_url}")
     if not agent.verify("Is the patients table visible?", timeout=20):
-        return Result(success=False, error="Patients table not found")
+        raise RuntimeError("Patients table not found")
 
     patients = agent.extract(
         "Extract all patient information from the table",
@@ -1075,9 +1034,9 @@ def run(params: Params) -> Result:
     )
 
     if not patients:
-        return Result(success=False, error="No patients found")
+        raise RuntimeError("No patients found in the table")
 
-    return Result(success=True, total_patients=len(patients), patients=patients)
+    return Result(total_patients=len(patients), patients=patients)
 ```
 
 ### Pattern 4: Login with Secure Password
@@ -1097,8 +1056,7 @@ class SecureParams(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    error: str | None = None
+    account_name: str = Field(min_length=1, description="Account name shown on the dashboard after login")
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:
@@ -1107,11 +1065,11 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     agent.execute(f"Navigate to {params.login_url}")
     if not agent.verify("Is the login form visible?", timeout=20):
-        return Result(success=False, error="Login page not found")
+        raise RuntimeError("Login page not found or failed to load")
 
     agent.execute("Click the username or email field")
     computer.hotkey("ctrl", "a")
@@ -1126,13 +1084,14 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     computer.press("Return")
 
     if agent.verify("Are we still on the login page?", timeout=10):
-        return Result(success=False, error="Login failed - still on login page")
-    elif agent.verify("Is there an error message visible?"):
-        return Result(success=False, error="Login failed - error message displayed")
-    elif agent.verify("Is the dashboard visible?", timeout=20):
-        return Result(success=True)
-    else:
-        return Result(success=False, error="Unable to verify login state")
+        raise RuntimeError("Login failed — still on login page after submitting credentials")
+    if agent.verify("Is there an error message visible?"):
+        raise RuntimeError("Login failed — error message displayed")
+    if not agent.verify("Is the dashboard visible?", timeout=20):
+        raise RuntimeError("Unable to confirm login — dashboard not visible")
+
+    data = agent.extract("What is the account name shown on the dashboard?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ---
@@ -1167,9 +1126,7 @@ class SecureParams(BaseModel):
 
 class Result(BaseModel):
     """Output returned by this workflow."""
-    success: bool
     data: dict | None = None
-    error: str | None = None
 ```
 
 **3. Use Structured Logging**
@@ -1189,13 +1146,10 @@ def run(params: Params) -> Result:
 
 ```python
 # BAD
-return Result(success=False, error="Failed")
+raise RuntimeError("Failed")
 
 # GOOD
-return Result(
-    success=False,
-    error=f"Patient record not found for '{params.patient_name}'"
-)
+raise RuntimeError(f"Patient record not found for '{params.patient_name}'")
 ```
 
 ### Common Pitfalls When Generating Workflows
@@ -1211,7 +1165,7 @@ agent.execute("Click the submit button")        # Already found it
 # GOOD - Combine operations
 agent.execute("Click the blue submit button")
 if not agent.verify("Did submission succeed?"):
-    return Result(success=False, error="Submission failed")
+    raise RuntimeError("Submission failed — no success confirmation")
 ```
 
 **Pitfall 2: Vague Descriptions**
@@ -1236,7 +1190,7 @@ data = agent.extract("Get confirmation number", schema=schema)  # May fail
 # GOOD - Wait for async operation
 agent.execute("Click submit")
 if not agent.verify("Is confirmation page visible?", timeout=20):
-    return Result(success=False, error="Submission timed out")
+    raise RuntimeError("Submission timed out — no confirmation page appeared")
 data = agent.extract("Get confirmation number", schema=schema)
 ```
 

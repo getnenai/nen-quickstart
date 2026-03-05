@@ -19,10 +19,8 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    downloaded: int = 0
-    files: list[str] = []
-    error: str | None = None
+    downloaded: int = Field(ge=1, description="Number of files successfully downloaded")
+    files: list[str] = Field(min_length=1, description="Names of downloaded files")
 
 
 def run(params: Params) -> Result:
@@ -38,7 +36,7 @@ def run(params: Params) -> Result:
     agent.execute(f"Navigate to patient '{params.patient_name}' documents")
 
     if not agent.verify("Is the documents list visible?", timeout=15):
-        return Result(success=False, error="Documents list not visible")
+        raise RuntimeError("Documents list not visible")
 
     # Discover available documents
     documents = agent.extract(
@@ -61,6 +59,6 @@ def run(params: Params) -> Result:
         downloaded_files.append(doc)
 
     if not downloaded_files:
-        return Result(success=False, error="No documents were downloaded successfully")
+        raise RuntimeError("No documents were downloaded successfully")
 
-    return Result(success=True, downloaded=len(downloaded_files), files=downloaded_files)
+    return Result(downloaded=len(downloaded_files), files=downloaded_files)

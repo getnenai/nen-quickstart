@@ -106,20 +106,16 @@ from nen import Agent
 agent = Agent()
 
 # ❌ BAD - checks success first (prone to false positives)
-if agent.verify("Is there a dashboard?"):
-    return Result(success=True)
-elif agent.verify("Are we still on login page?"):
-    return Result(success=False, error="Still on login page")
+if not agent.verify("Is there a dashboard?"):
+    raise RuntimeError("Login failed")
 
 # ✅ GOOD - checks failure first (more reliable)
 if agent.verify("Are we still on the login page?"):
-    return Result(success=False, error="Login failed")
-elif agent.verify("Is there an error message visible?"):
-    return Result(success=False, error="Error displayed")
-elif agent.verify("Did we navigate to a dashboard or different URL?"):
-    return Result(success=True, message="Login successful")
-else:
-    return Result(success=False, error="Unable to determine state")
+    raise RuntimeError("Login failed — still on login page")
+if agent.verify("Is there an error message visible?"):
+    raise RuntimeError("Login failed — error message displayed")
+if not agent.verify("Did we navigate to a dashboard or different URL?"):
+    raise RuntimeError("Unable to confirm login — dashboard not visible")
 ```
 
 **Be specific in verification questions:**
@@ -138,14 +134,10 @@ agent.verify("Is there an 'Invalid email' error message visible?")
 **Always default to failure when state is unclear:**
 
 ```python
-# Conservative approach - if we can't confirm success, assume failure
-if agent.verify("Success indicator 1"):
-    return Result(success=True)
-elif agent.verify("Success indicator 2"):
-    return Result(success=True)
-else:
-    # Default to failure (conservative)
-    return Result(success=False, error="Unable to verify success")
+# Conservative approach - raise if we can't confirm success
+if agent.verify("Success indicator 1") or agent.verify("Success indicator 2"):
+    return result  # proceed to return data
+raise RuntimeError("Unable to verify success — no expected state found")
 ```
 
 ### Keyboard Typing with Delays
@@ -179,7 +171,7 @@ computer = Computer()
 
 # Wait for element to be visible first
 if not agent.verify("Is the submit button visible?"):
-    return Result(success=False, error="Button not found")
+    raise RuntimeError("Submit button not found")
 
 # Click at specific coordinates
 computer.mouse.click_at(500, 400)
@@ -261,7 +253,7 @@ agent.execute("Navigate to https://example.com")
 
 # Check actual state first
 if agent.verify("Are we already logged in (dashboard visible)?"):
-    return Result(success=True, message="Already logged in")
+    pass  # Already logged in — proceed to extract data
 
 # Then proceed with login if needed
 agent.execute("Click login button")
@@ -334,7 +326,7 @@ if agent.verify("Is the login form visible?"):
     pass
 
 if not agent.verify("Is dashboard loaded?", timeout=30):
-    return Result(success=False, error="Dashboard didn't load")
+    raise RuntimeError("Dashboard did not load within 30 seconds")
 ```
 
 #### agent.extract(query, schema)

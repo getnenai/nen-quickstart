@@ -62,7 +62,7 @@ Create the Python SDK workflow file using `nen.workflow` primitives:
    - Define Pydantic `Params` and `Result` models with type hints
    - Implement `run(params: Params) -> Result` function
    - Use SDK primitives: `Agent` (`agent.execute()`, `agent.verify()`, `agent.extract()`), `Computer` (`computer.type()`, `computer.press()`, `computer.hotkey()`, `computer.mouse`)
-   - Return Pydantic `Result` model with `success: bool` field
+   - Return Pydantic `Result` model with workflow output data fields
 
 3. **Validate locally:**
    - Check syntax using `Read` + `ReadLints` tools
@@ -81,18 +81,18 @@ Before validating and deploying your workflow, verify these common issues:
 ### ✅ Verification Logic
 - [ ] **Check failure indicators FIRST**, then success indicators
 - [ ] Verification questions are specific: "Is there an 'Invalid email' error?" not "Did it work?"
-- [ ] Default to failure (`success=False`) when state is unclear
+- [ ] Default to raising an exception when state is unclear
 - [ ] Timeouts are appropriate for slow operations (20-30s for page loads)
 
 ### ✅ Error Handling
-- [ ] **Unrecoverable failures use `raise`** — browser won't open, site unreachable, extraction returned nothing → `raise RuntimeError("...")`
-- [ ] **Expected failures use `Result(success=False)`** — wrong password, item not found, business logic failed → `return Result(success=False, error="...")`
+- [ ] **All failures use `raise`** — browser won't open, site unreachable, login failed, item not found → `raise RuntimeError("...")`
+- [ ] Catch exceptions only for recovery (retry or alternative path) — re-raise if unrecoverable
 - [ ] Error messages are specific and actionable
 - [ ] No bare `except` blocks that swallow errors silently
 
 ### ✅ Best Practices
 - [ ] Pydantic `Params` and `Result` models defined with type hints
-- [ ] `Result` model includes `success: bool` field
+- [ ] `Result` model contains only workflow output fields — no `success: bool` or `error: str | None`
 - [ ] `Agent` and `Computer` instances created at top of `run()` function
 - [ ] Agent descriptions are specific: "Click the blue 'Submit' button" not "Click submit"
 - [ ] Sensitive data (passwords, tokens) not logged
@@ -131,7 +131,7 @@ Validate the workflow using the NenAI validation tool before deployment:
    - Pydantic models are properly defined (`Params` and `Result` classes)
    - Function signature is correct (`run(params: Params) -> Result`)
    - Required imports are present (`from nen import Agent, Computer`, `pydantic`)
-   - Result model includes `success: bool` field
+   - `Result` model contains only output data fields — no `success: bool` or `error: str | None`
    - Field validations are properly configured
    - No syntax or type errors
 
@@ -439,20 +439,16 @@ computer.hotkey("ctrl", "c")
 
 ```python
 # ❌ WRONG - checks success first (prone to false positives)
-if agent.verify("Is there a dashboard?"):
-    return Result(success=True)
-elif agent.verify("Are we still on login page?"):
-    return Result(success=False)
+if not agent.verify("Is there a dashboard?"):
+    raise RuntimeError("Login failed")
 
 # ✅ CORRECT - checks failure first (more reliable)
 if agent.verify("Are we still on the login page?"):
-    return Result(success=False, error="Login failed")
-elif agent.verify("Is there an error message visible?"):
-    return Result(success=False, error="Error displayed")
-elif agent.verify("Is dashboard visible?"):
-    return Result(success=True)
-else:
-    return Result(success=False, error="Unable to determine state")
+    raise RuntimeError("Login failed — still on login page")
+if agent.verify("Is there an error message visible?"):
+    raise RuntimeError("Login failed — error message displayed")
+if not agent.verify("Is dashboard visible?"):
+    raise RuntimeError("Unable to confirm login — dashboard not visible")
 ```
 
 ### 4. Vague Verification Questions ❌

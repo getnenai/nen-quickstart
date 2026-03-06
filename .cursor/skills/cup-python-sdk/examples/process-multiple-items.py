@@ -8,7 +8,7 @@ Demonstrates:
 """
 
 from nen import Agent, Computer
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Params(BaseModel):
@@ -16,9 +16,7 @@ class Params(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    data: list[dict] = []
-    error: str | None = None
+    data: list[dict] = Field(min_length=1, description="Appointments per provider")
 
 
 def run(params: Params) -> Result:
@@ -59,10 +57,6 @@ def run(params: Params) -> Result:
         for r in results
     )
     if not any_succeeded:
-        return Result(
-            success=False,
-            data=results,
-            error="No appointments were retrieved for any provider",
-        )
+        raise RuntimeError("No appointments were retrieved for any provider")
 
-    return Result(success=True, data=results)
+    return Result(data=results)

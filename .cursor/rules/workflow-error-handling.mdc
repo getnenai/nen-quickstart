@@ -1,24 +1,24 @@
 ---
-description: "Error handling conventions for NenAI workflow.py files — when to raise vs return Result(success=False)"
+description: "Error handling conventions for NenAI workflow.py files — always raise exceptions for failures"
 globs: workflows/**/*.py
 alwaysApply: false
 ---
 
 # Workflow Error Handling Conventions
 
-Use the right error mechanism based on whether a failure is **recoverable** or **unrecoverable**.
+All failures raise exceptions. The `success` and `error` fields in the run webhook are provided by the framework automatically — they are **not** fields you define in `Result`.
 
 ## The Rule
 
 | Condition | Pattern |
 |-----------|---------|
-| Unrecoverable — environment broken, precondition not met, external service unreachable | `raise RuntimeError("...")` |
-| Expected failure — wrong password, item not found, business logic failed | `return Result(success=False, error="...")` |
+| Any failure — browser won't open, login rejected, item not found, extraction empty | `raise RuntimeError("...")` or `raise ValueError("...")` |
+| Recoverable failure (can retry or take an alternative path) | `try/except` then retry or fallback, re-raise if unrecoverable |
 
-## ✅ Unrecoverable → raise
+## ✅ Raise for all failures
 
 ```python
-# Browser won't open — nothing can proceed
+# Browser won't open
 if not agent.verify("Is the Chromium browser open?", timeout=10):
     raise RuntimeError("Failed to open Chromium browser")
 
@@ -26,42 +26,69 @@ if not agent.verify("Is the Chromium browser open?", timeout=10):
 if not agent.verify("Is the page loaded?", timeout=20):
     raise RuntimeError(f"Failed to load {params.url}")
 
+# Login failed
+if agent.verify("Are we still on the login page?", timeout=10):
+    raise RuntimeError("Login failed — still on login page after submitting credentials")
+
 # Extraction returned nothing useful
-instructions = data.get("instructions")
-if not instructions:
-    raise ValueError("Extraction returned no content — page may be unexpected")
+data = agent.extract("Extract the order ID", Result.model_json_schema())
+if not data.get("order_id"):
+    raise ValueError("No order ID found on the page")
 ```
 
-## ✅ Expected failure → return Result
+## ✅ Catch only for recovery (retry or alternative path)
 
 ```python
-# Wrong password — meaningful outcome the caller can act on
-if agent.verify("Is the password prompt still visible?", timeout=10):
-    return Result(success=False, error="Login failed — password may be incorrect")
+# Retry pattern
+for attempt in range(3):
+    try:
+        agent.execute("Click Submit")
+        break
+    except WorkflowError:
+        if attempt == 2:
+            raise
+        agent.execute("Scroll down to find the Submit button")
 
-# Item not found in the UI — valid workflow outcome
-if not agent.verify("Is the confirmation message visible?", timeout=15):
-    return Result(success=False, error="Could not find confirmation after submission")
+# Alternative path
+try:
+    agent.execute("Click the Export button")
+except WorkflowError:
+    agent.execute("Open the File menu and click Export")
 ```
 
-## ❌ Wrong — raising for expected outcomes
+## ❌ Wrong — returning Result with success/error fields
 
 ```python
-# Don't raise for wrong passwords or missing UI elements that are valid workflow results
-if agent.verify("Is the password prompt still visible?"):
-    raise RuntimeError("Login failed")  # ❌ should be Result(success=False)
+# DO NOT define success or error in Result
+class Result(BaseModel):
+    success: bool        # ❌ framework-provided
+    error: str | None    # ❌ framework-provided
+
+# DO NOT return Result(success=False, ...)
+if not agent.verify("Is the page loaded?"):
+    return Result(success=False, error="Failed to load page")  # ❌
+
+# DO NOT return Result(success=True) — omit success from Result entirely
+return Result(success=True)  # ❌
 ```
 
-## ❌ Wrong — returning Result for unrecoverable failures
+## ✅ Correct — Result contains only output data
 
 ```python
-# Don't silently succeed a run when the environment is broken
-if not agent.verify("Is the Chromium browser open?", timeout=10):
-    return Result(success=False, error="Failed to open browser")  # ❌ should raise
+class Result(BaseModel):
+    customer_id: str
+    account_name: str
+
+def run(params: Params) -> Result:
+    agent = Agent()
+
+    if not agent.verify("Is the dashboard loaded?", timeout=20):
+        raise RuntimeError("Dashboard did not load")  # ✅
+
+    data = agent.extract("Extract customer info", Result.model_json_schema())
+    return Result.model_construct(**data)  # ✅
 ```
 
 ## Key Principle
 
-> Raise when the workflow **cannot meaningfully continue**. Return `Result(success=False)` when the workflow **ran correctly but the outcome was negative**.
-
-Unhandled exceptions propagate as hard failures — the orchestrator surfaces the message to the caller. Use this intentionally for broken preconditions.
+> Raise for all failures. Catch only when you can meaningfully recover. `success` and `error` in the webhook payload are automatically set by the framework — any uncaught exception becomes `{"success": false, "error": "..."}`.

@@ -55,10 +55,7 @@ class SecureParams(BaseModel):
     api_key: Secure[str] = Field(description="API key")  # only if needed
 
 class Result(BaseModel):
-    # Result should include success: bool
-    success: bool
     extracted_data: dict | None = None
-    error: str | None = None
 ```
 
 Rules:
@@ -66,8 +63,8 @@ Rules:
 - **Passwords, tokens, and API keys go in `SecureParams` with `Secure[str]`** — not in `Params`
 - If there are no secrets, omit `SecureParams` entirely
 - Use `list[str]`, `list[dict]`, `dict | None` for complex types
-- `Result` should include `success: bool`
-- Set `error: str | None = None` in `Result` for failure messages
+- `Result` contains only workflow output fields — **no `success: bool` or `error: str | None`**
+- All failures raise exceptions — `success` and `error` in the webhook are framework-provided
 
 ### 4. Map actions to SDK calls
 
@@ -85,7 +82,7 @@ Rules:
 | Download file | See `examples/download-files.py` |
 | Loop over items | Python `for` loop with `agent.execute()` inside |
 | Save result to file | `os.makedirs("/artifacts", exist_ok=True)` then write to `/artifacts/` |
-| Workflow failure | `return Result(success=False, error="descriptive message")` |
+| Workflow failure | `raise RuntimeError("descriptive message")` |
 
 ### 5. Write the workflow
 
@@ -106,9 +103,7 @@ class SecureParams(BaseModel):  # omit entirely if no secrets
 
 
 class Result(BaseModel):
-    success: bool
     data: dict | None = None
-    error: str | None = None
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:  # drop secure_params if no secrets
@@ -118,12 +113,12 @@ def run(params: Params, secure_params: SecureParams) -> Result:  # drop secure_p
     # Phase 1: Open browser
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     # Phase 2: Navigate
     agent.execute(f"Navigate to {params.url}")
     if not agent.verify("Is the page loaded?", timeout=20):
-        return Result(success=False, error="Failed to load page")
+        raise RuntimeError(f"Failed to load {params.url}")
 
     # Phase 3: Perform actions
     agent.execute("Click the [element]")
@@ -133,22 +128,22 @@ def run(params: Params, secure_params: SecureParams) -> Result:  # drop secure_p
 
     # Phase 4: Verify result — check failure FIRST
     if agent.verify("Is there an error message visible?"):
-        return Result(success=False, error="Action failed - error message shown")
+        raise RuntimeError("Action failed — error message shown")
 
     # Phase 5: Extract results
     data = agent.extract("Extract ...", schema={...})
 
     # Phase 6: Return
-    return Result(success=True, data=data)
+    return Result(data=data)
 ```
 
 ### 6. Review the output
 
 Verify:
 - [ ] Every JSON step has a corresponding Python call
-- [ ] `Result` includes `success: bool`
+- [ ] `Result` contains only workflow output fields — no `success: bool` or `error: str | None`
 - [ ] `agent.execute()` calls use `agent.verify()` checks after critical actions
-- [ ] Error handling uses `return Result(success=False, error=...)` — not `raise`
+- [ ] All failures use `raise RuntimeError(...)` — never `return Result(success=False, ...)`
 - [ ] Pydantic models match the JSON input/output schema
 - [ ] Natural language in `agent.execute()` is specific (element name, location, color)
 - [ ] Fields are cleared before typing (`ctrl+a` + `BackSpace`)

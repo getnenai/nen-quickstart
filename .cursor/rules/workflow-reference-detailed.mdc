@@ -39,8 +39,7 @@ class Params(BaseModel):
 
 class Result(BaseModel):
     """Output schema — validated before returning to caller."""
-    success: bool
-    error: str | None = None
+    title: str = Field(min_length=1, description="Page title extracted from the site")
 
 
 def run(params: Params) -> Result:
@@ -51,7 +50,7 @@ def run(params: Params) -> Result:
         params: Validated Pydantic input parameters
 
     Returns:
-        Result with at minimum: success bool
+        Result model with workflow output data
     """
     agent = Agent()
     computer = Computer()
@@ -59,7 +58,8 @@ def run(params: Params) -> Result:
     # Workflow logic
     agent.execute("Do something")
 
-    return Result(success=True)
+    data = agent.extract("What is the page title?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Template with Secrets
@@ -84,8 +84,7 @@ class SecureParams(BaseModel):
 
 
 class Result(BaseModel):
-    success: bool
-    error: str | None = None
+    account_name: str = Field(min_length=1, description="Account name shown after login")
 
 
 def run(params: Params, secure_params: SecureParams) -> Result:
@@ -93,7 +92,8 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     computer = Computer()
 
     # Use params.username and secure_params.password
-    return Result(success=True)
+    data = agent.extract("What is the account name shown?", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Params Access
@@ -111,15 +111,16 @@ name = params.patient_name
 ### Result Structure
 
 ```python
-# Success
-return Result(success=True, data=result, message="Completed successfully")
-
-# Failure
-return Result(success=False, error="Error description")
-
-# Using model_construct for extracted data
+# Return extracted data
 data = agent.extract("Get article info", Result.model_json_schema())
 return Result.model_construct(**data)
+
+# Return constructed result
+return Result(field_one=value_one, field_two=value_two)
+
+# Raise for all failures — success/error are framework-provided
+if not agent.verify("Is the page loaded?"):
+    raise RuntimeError("Page failed to load")
 ```
 
 ---
@@ -321,14 +322,15 @@ def run(params: Params) -> Result:
     # Open and navigate
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     agent.execute(f"Navigate to {params.url}")
     if not agent.verify("Is the page loaded?", timeout=20):
-        return Result(success=False, error="Failed to load page")
+        raise RuntimeError(f"Failed to load {params.url}")
 
     # Continue workflow...
-    return Result(success=True)
+    data = agent.extract("Extract relevant data", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Form Filling
@@ -340,7 +342,7 @@ def run(params: Params) -> Result:
 
     agent.execute("Navigate to contact form")
     if not agent.verify("Is the form visible?"):
-        return Result(success=False, error="Form not found")
+        raise RuntimeError("Form not found")
 
     # Fill and clear fields
     agent.execute("Click the name field")
@@ -355,10 +357,10 @@ def run(params: Params) -> Result:
 
     agent.execute("Click submit button")
 
-    if agent.verify("Is there a success message?", timeout=10):
-        return Result(success=True)
-    else:
-        return Result(success=False, error="Submission failed")
+    if not agent.verify("Is there a success message?", timeout=10):
+        raise RuntimeError("Submission failed — no success message found")
+
+    return Result()
 ```
 
 ### Data Extraction
@@ -369,24 +371,14 @@ def run(params: Params) -> Result:
 
     agent.execute("Navigate to data page")
     if not agent.verify("Is the data table visible?"):
-        return Result(success=False, error="Table not found")
+        raise RuntimeError("Data table not found")
 
     data = agent.extract(
         "Extract all rows from the table",
-        schema={
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "value": {"type": "number"}
-                },
-                "required": ["name", "value"]
-            }
-        }
+        Result.model_json_schema()
     )
 
-    return Result(success=True, data=data)
+    return Result.model_construct(**data)
 ```
 
 ### Login Workflow
@@ -398,7 +390,7 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     agent.execute(f"Navigate to {params.login_url}")
     if not agent.verify("Is login form visible?"):
-        return Result(success=False, error="Login page not found")
+        raise RuntimeError("Login page not found or failed to load")
 
     agent.execute("Click username field")
     computer.hotkey("ctrl", "a")
@@ -412,12 +404,13 @@ def run(params: Params, secure_params: SecureParams) -> Result:
 
     computer.press("Return")
 
-    if agent.verify("Is dashboard visible?", timeout=20):
-        return Result(success=True)
-    elif agent.verify("Is there an error message?"):
-        return Result(success=False, error="Invalid credentials")
-    else:
-        return Result(success=False, error="Login result unclear")
+    if agent.verify("Is there an error message?"):
+        raise RuntimeError("Login failed — invalid credentials")
+    if not agent.verify("Is dashboard visible?", timeout=20):
+        raise RuntimeError("Login failed — dashboard not visible")
+
+    data = agent.extract("Extract account info", Result.model_json_schema())
+    return Result.model_construct(**data)
 ```
 
 ### Multi-Step with Checkpoints
@@ -432,37 +425,39 @@ def run(params: Params) -> Result:
     logging.info("Step 1: Opening browser")
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
-        return Result(success=False, error="Failed to open browser")
+        raise RuntimeError("Failed to open Chromium browser")
 
     logging.info("Step 2: Authenticating")
-    if not authenticate(agent, computer, params):
-        return Result(success=False, error="Authentication failed")
+    authenticate(agent, computer, params)  # raises on failure
 
     logging.info("Step 3: Extracting data")
-    try:
-        data = extract_data(agent)
-    except Exception as e:
-        return Result(success=False, error=f"Extraction failed: {e}")
+    data = extract_data(agent)  # raises on failure
 
     logging.info("Workflow completed")
-    return Result(success=True, data=data)
+    return Result.model_construct(**data)
 ```
 
 ---
 
 ## Error Handling
 
-### Basic Try/Except
+All failures raise exceptions. `success` and `error` in the run webhook are provided by the framework automatically. `Result` contains only output data.
+
+### Raise for all failures
 
 ```python
-try:
-    agent.execute("Click submit")
-    return Result(success=True)
-except Exception as e:
-    return Result(success=False, error=str(e))
+if not agent.verify("Is the Chromium browser open?", timeout=10):
+    raise RuntimeError("Failed to open Chromium browser")
+
+if not agent.verify("Is the page loaded?", timeout=20):
+    raise RuntimeError(f"Failed to load {params.url}")
+
+data = agent.extract("Extract the order ID", Result.model_json_schema())
+if not data.get("order_id"):
+    raise ValueError("No order ID found on the page")
 ```
 
-### Retry Pattern
+### Retry Pattern (catch only for recovery)
 
 ```python
 import time
@@ -471,34 +466,32 @@ max_retries = 3
 for attempt in range(max_retries):
     try:
         agent.execute("Click submit")
-        return Result(success=True)
-    except Exception as e:
-        if attempt < max_retries - 1:
-            time.sleep(2)
-            continue
-        return Result(success=False, error=f"Failed after {max_retries} attempts: {e}")
+        break
+    except WorkflowError:
+        if attempt == max_retries - 1:
+            raise
+        time.sleep(2)
 ```
 
-### Partial Success
+### Partial Success (continue on per-item failures)
 
 ```python
 def run(params: Params) -> Result:
     agent = Agent()
     results = []
-    errors = []
 
     for item in params.items:
         try:
             data = process_item(agent, item)
             results.append({"item": item, "data": data})
         except Exception as e:
-            errors.append({"item": item, "error": str(e)})
+            results.append({"item": item, "error": str(e)})
+            continue
 
-    return Result(
-        success=len(results) > 0,
-        results=results,
-        errors=errors
-    )
+    if not any(r.get("data") for r in results):
+        raise RuntimeError("All items failed — no data extracted")
+
+    return Result(results=results)
 ```
 
 ### Checkpoint Pattern
@@ -506,22 +499,12 @@ def run(params: Params) -> Result:
 ```python
 def run(params: Params) -> Result:
     agent = Agent()
-    checkpoint = "start"
 
-    try:
-        checkpoint = "authentication"
-        authenticate(agent)
+    authenticate(agent)   # raises on failure
+    navigate(agent)       # raises on failure
+    data = extract_data(agent)  # raises on failure
 
-        checkpoint = "navigation"
-        navigate(agent)
-
-        checkpoint = "extraction"
-        data = extract_data(agent)
-
-        return Result(success=True, data=data)
-
-    except Exception as e:
-        return Result(success=False, error=str(e), failed_at=checkpoint)
+    return Result.model_construct(**data)
 ```
 
 ---
@@ -539,7 +522,7 @@ def run(params: Params) -> Result:
     agent.execute("Do something")
     print("Action completed")
 
-    return Result(success=True)
+    return Result()
 ```
 
 Output:
@@ -569,7 +552,7 @@ def run(params: Params) -> Result:
         "result": data
     })
 
-    return Result(success=True, data=data)
+    return Result(data=data)
 ```
 
 ### Redacting Sensitive Data
@@ -769,7 +752,7 @@ agent.verify("Is data visible?", timeout=30)
 # Problem: Data not visible
 # Solution: Verify before extracting
 if not agent.verify("Is the table visible?"):
-    return Result(success=False, error="Table not found")
+    raise RuntimeError("Table not found — cannot extract data")
 data = agent.extract("Get table data", schema=schema)
 
 # Problem: Schema mismatch

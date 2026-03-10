@@ -46,9 +46,9 @@ def run(params: Params) -> Result:
     agent = Agent()
     agent.execute(f"Open the browser at {params.website}")
     if not agent.verify("Is the page fully loaded in the browser?", timeout=20):
-        return Result(title="")
+        raise RuntimeError(f"Failed to load {params.website}")
     data = agent.extract("What is the page title?", Result.model_json_schema())
-    return Result.model_construct(**data)
+    return Result.model_validate(data)
 ```
 
 ## Execution Environment

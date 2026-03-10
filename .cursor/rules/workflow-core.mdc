@@ -84,7 +84,7 @@ def run(params: Params) -> Result:
         raise RuntimeError(f"Failed to load {params.website_url}")
 
     data = agent.extract("What is the page title?", Result.model_json_schema())
-    return Result.model_construct(**data)
+    return Result.model_validate(data)
 ```
 
 ## Python Syntax Rules
@@ -140,7 +140,7 @@ AI-driven screen controller. Create once per `run()`:
 agent = Agent()
 ```
 
-### agent.execute(description, max_iterations=10)
+### agent.execute(instruction, max_iterations=10)
 Execute natural language action using VLM.
 ```python
 agent.execute("Click the submit button")
@@ -159,7 +159,7 @@ if agent.verify("Is the login form visible?"):
 Extract structured data using JSON schema. Prefer passing `Result.model_json_schema()` directly so the extraction schema stays in sync with the return type.
 ```python
 data = agent.extract("What is the account balance?", Result.model_json_schema())
-return Result.model_construct(**data)
+return Result.model_validate(data)
 ```
 
 ### Computer
@@ -168,11 +168,11 @@ Direct keyboard/mouse control (no VLM). Create once per `run()`:
 computer = Computer()
 ```
 
-### computer.mouse
-Direct mouse control (no VLM).
+### computer mouse methods
+Direct mouse control (no VLM). Methods are called directly on `computer`.
 ```python
-computer.mouse.click_at(500, 300)
-computer.mouse.move(400, 200)
+computer.click_at(500, 300)
+computer.move(400, 200)
 ```
 
 ### computer keyboard methods
@@ -227,7 +227,7 @@ if not agent.verify("Is the data table visible?"):
     raise RuntimeError("Table not found — cannot extract data")
 
 data = agent.extract("Extract all rows from the table", Result.model_json_schema())
-return Result.model_construct(**data)
+return Result.model_validate(data)
 ```
 
 ## Best Practices
@@ -248,7 +248,7 @@ return Result.model_construct(**data)
 
 8. **`Result` models actual data, not a success/failure envelope** — define fields for the data being extracted (e.g. `customer_id: str`, `instructions: str`). Use `Field` validators to enforce data quality. Raise exceptions for all failures — do not add `success: bool` or `error: str | None` to `Result`.
 
-9. **Use `Result.model_json_schema()` with `agent.extract()`** — pass it directly so extraction schema stays in sync with the return type. Return with `Result.model_construct(**data)`.
+9. **Use `Result.model_json_schema()` with `agent.extract()`** — pass it directly so extraction schema stays in sync with the return type. Return with `Result.model_validate(data)`.
 
 10. **Use Field validation** - `Field(default="...", min_length=1, ge=0)` for input validation
 

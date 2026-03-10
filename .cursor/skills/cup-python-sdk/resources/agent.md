@@ -31,7 +31,7 @@ def run(params: Params) -> Result:
 > Perform an action on the screen using a natural language instruction
 
 ```python
-agent.execute(description: str, max_iterations: int = 10) -> None
+agent.execute(instruction: str, max_iterations: int = 10) -> dict
 ```
 
 The VLM takes a screenshot, interprets the instruction, and performs the required interactions (clicks, typing, scrolling, navigation, etc.). It may take multiple steps to complete complex instructions.
@@ -40,7 +40,7 @@ The VLM takes a screenshot, interprets the instruction, and performs the require
 
 | Parameter        | Type  | Default | Description                                                  |
 | ---------------- | ----- | ------- | ------------------------------------------------------------ |
-| `description`    | `str` | —       | Natural language description of what to do                   |
+| `instruction`    | `str` | —       | Natural language description of what to do                   |
 | `max_iterations` | `int` | `10`    | Maximum number of VLM steps to attempt before giving up      |
 
 ### Examples
@@ -148,7 +148,7 @@ Returns data matching a JSON Schema. The VLM takes a screenshot and extracts the
 ```python
 # Extract using Result model's schema
 data = agent.extract("What is the page title?", Result.model_json_schema())
-return Result.model_construct(**data)
+return Result.model_validate(data)
 
 # Extract a single value with inline schema
 result = agent.extract(

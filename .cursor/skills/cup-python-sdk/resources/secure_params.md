@@ -92,5 +92,5 @@ from pydantic import BaseModel, Field
 
 class SecureParams(BaseModel):
     password: Secure[str] = Field(min_length=1, description="Login password")
-    api_key: Secure[str] = Field(description="API key for external service")
+    api_key: Secure[str] = Field(min_length=1, description="API key for external service")
 ```

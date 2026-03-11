@@ -73,23 +73,7 @@ Ask your AI agent to create a workflow:
 Create a workflow that navigates to google.com and takes a screenshot
 ```
 
-The AI will create a workflow, validate it using `nen_validate`, then upload and run it using the available MCP tools.
-
-### Validating Workflows
-
-Before deploying any workflow, validate its structure:
-
-```
-Validate my workflow in workflows/my_workflows/example/workflow.py
-```
-
-The AI will use `nen_validate` to check:
-- Pydantic Input/Output models
-- Correct function signature (`run(input: Input) -> Output`)
-- Required imports and type hints
-- Proper error handling
-
-**Best Practice:** Always validate workflows before deployment to catch errors early!
+The AI will create a workflow and run it using the available MCP tools.
 
 ---
 

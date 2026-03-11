@@ -1,6 +1,6 @@
-# Cursor Rules for NenAI Workflows
+# Cursor Rules for Nen Workflows
 
-This directory contains Cursor rules for authoring NenAI workflows using the Python SDK approach.
+This directory contains Cursor rules for authoring Nen workflows using the Python SDK approach.
 
 ## Rule Structure Overview
 
@@ -15,7 +15,7 @@ This project uses modern `.mdc` (Markdown with frontmatter) files for intelligen
 ### workflow-core.mdc
 **Always applies | ~170 lines**
 
-Core NenAI workflow authoring principles loaded in every session.
+Core Nen workflow authoring principles loaded in every session.
 
 **Contains:**
 - Basic workflow structure and handler template
@@ -36,7 +36,7 @@ Systematic 4-step process for creating workflows: build → validate → deploy 
 **Contains:**
 - Step 1: Build workflow with Python SDK
 - Step 2: Validate workflow structure with nen_validate
-- Step 3: Deploy using NenAI platform tools
+- Step 3: Deploy using Nen platform tools
 - Step 4: Run and verify execution
 - Complete example flow
 - Quick reference table
@@ -116,7 +116,7 @@ Detailed SDK reference with function signatures and examples.
 ### mcp-platform-tools.mdc
 **Agent-decided | ~400 lines**
 
-NenAI MCP tool usage for platform operations including validation.
+Nen MCP tool usage for platform operations including validation.
 
 **Contains:**
 - When to use MCP tools vs direct file editing
@@ -129,7 +129,7 @@ NenAI MCP tool usage for platform operations including validation.
 **When it applies:** AI loads this when:
 - User mentions validation, deployment, running, or testing workflows
 - Debugging failed workflow executions
-- Working with NenAI platform operations
+- Working with Nen platform operations
 - Need to list or manage deployed workflows
 
 **How to reference:** `@mcp-platform-tools`

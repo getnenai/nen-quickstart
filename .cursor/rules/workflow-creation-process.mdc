@@ -1,35 +1,36 @@
 ---
-description: "Workflow creation process: build, deploy, and run workflows using NenAI platform"
+description: "Workflow creation process: build, deploy, and run workflows using Nen platform"
 alwaysApply: true
 ---
 
-# NenAI Workflow Creation Process
-
-## 🔴 CURRENT MODE: DOWN (MCP Server Offline)
-
-> **Set this to `ONLINE` once the MCP server is restored.**
-
-### 🚨 DOWN MODE — Active now. Only Step 1 applies. 🚨
-
-**The NenAI MCP server is offline. Do NOT attempt to use any MCP tools.**
-
-- ❌ Skip Step 2 (Validate via `nen_validate`) — cannot be reached
-- ❌ Skip Step 3 (Deploy via `nen_upload`) — cannot be reached
-- ❌ Skip Step 4 (Run via `nen_run`) — cannot be reached
-- ✅ Only perform Step 1 (Build) — write and review `workflow.py` locally
-- ✅ If the user asks to deploy or run, tell them the MCP server is currently down
-
-> ⛔ **PRECEDENCE RULE: While in DOWN mode, all steps and instructions below that reference MCP tools (`nen_validate`, `nen_upload`, `nen_run`, `nen_list_workflows`, `get_run_logs`, `nen_status`) are disabled. Only the build/local-authoring guidance in Step 1 applies.**
-
----
-
-### 🟢 ONLINE MODE — Use only when MCP server is confirmed back online.
-
-> The full Steps 1–5 process below applies only when the mode above is set to **ONLINE**.
-
----
+# Nen Workflow Creation Process
 
 When the user wants to create a new workflow, follow this systematic process:
+
+## ⚠️ PREREQUISITE: API Key Required
+
+**All Nen MCP tools require a valid API key.** Without it, `nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, and every other MCP tool will fail.
+
+**Before starting any workflow creation or deployment, confirm the user has their API key configured.**
+
+The user's `~/.cursor/mcp.json` must include the Nen Platform entry with their API key (merge into the existing `mcpServers` object if one already exists):
+
+```json
+{
+  "mcpServers": {
+    "Nen Platform": {
+      "url": "https://mcp.getnen.ai/v1",
+      "headers": {
+        "x-api-key": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+If the user hasn't done this yet, stop and guide them through setup before proceeding.
+
+---
 
 ## ⚠️ CRITICAL RULE: STOP AFTER RUNNING WORKFLOWS ⚠️
 
@@ -65,7 +66,7 @@ Create the Python SDK workflow file using `nen.workflow` primitives:
    - Return Pydantic `Result` model with workflow output data fields
 
 3. **Validate locally:**
-   - Check syntax using `Read` + `ReadLints` tools
+   - Check syntax using `ReadLints`
    - Ensure all imports are correct
    - Verify error handling is in place
 
@@ -107,46 +108,11 @@ Before validating and deploying your workflow, verify these common issues:
 
 **If any checklist item fails, fix it before proceeding to validation.**
 
-## Step 2: Validate the Workflow
+## Step 2: Deploy the Workflow
 
-Validate the workflow using the NenAI validation tool before deployment:
+Deploy to Nen platform using MCP tools:
 
-1. **Run validation:**
-   ```python
-   # Read the workflow file content
-   workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
-   
-   # Validate the workflow
-   nen_validate(
-     content=workflow_content,
-     filename="workflow.py"
-   )
-   ```
-
-2. **Check validation results:**
-   - If validation passes: Proceed to Step 3 (Deploy)
-   - If validation fails: Fix reported issues and re-validate
-
-3. **Common validation checks:**
-   - Pydantic models are properly defined (`Params` and `Result` classes)
-   - Function signature is correct (`run(params: Params) -> Result`)
-   - Required imports are present (`from nen import Agent, Computer`, `pydantic`)
-   - `Result` model contains only output data fields — no `success: bool` or `error: str | None`
-   - Field validations are properly configured
-   - No syntax or type errors
-
-**IMPORTANT:** Always validate workflows before deployment. This catches errors early and ensures workflows will execute correctly on the platform.
-
-## Step 3: Deploy the Workflow
-
-Deploy to NenAI platform using MCP tools:
-
-1. **List existing workflows** (to get deployment context):
-   ```python
-   nen_list_workflows()
-   ```
-
-2. **Upload/deploy the workflow:**
+1. **Upload/deploy the workflow:**
    
    **IMPORTANT:** Always use content-based upload (not localPath) because MCP tools run in a containerized environment and cannot access local filesystem paths.
    
@@ -184,7 +150,7 @@ Deploy to NenAI platform using MCP tools:
    - Note the returned `workflowId`
    - Confirm successful upload message
 
-## Step 4: Run the Workflow and Wait for User Feedback
+## Step 3: Run the Workflow and Wait for User Feedback
 
 Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
 
@@ -244,7 +210,7 @@ Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
    - User may report issues: **ONLY THEN** help debug and iterate (see Step 5)
    - User may be satisfied: workflow creation is complete!
 
-## Step 5: Iterate Based on User Feedback
+## Step 4: Iterate Based on User Feedback
 
 After the user observes the workflow execution, iterate based on their feedback:
 
@@ -292,14 +258,13 @@ After the user observes the workflow execution, iterate based on their feedback:
 
 4. **Fix and re-deploy:**
    - Make changes to workflow.py based on feedback
-   - **ALWAYS validate** after making changes: `nen_validate()`
    - Deploy the updated workflow: `nen_upload(workflowId="...", files=[...])`
    - Run again: `result = nen_run(...)`
    - **Open browser automatically**: `Shell(f'open "{result.liveViewUrl}"')`
    - **🛑 IMMEDIATELY STOP - End your response here and wait for user to observe again**
 
 5. **Repeat until satisfied:**
-   - Continue the iterate cycle: change → validate → deploy → run → **STOP** → observe
+   - Continue the iterate cycle: change → deploy → run → **STOP** → observe
    - User decides when the workflow meets their needs
    - **Every iteration MUST end with STOP after `nen_run()`**
 
@@ -314,19 +279,12 @@ AI Actions:
    - Author Python SDK code with Agent, Computer, agent.execute(), agent.verify(), etc.
    - Check syntax with ReadLints
 
-2. VALIDATE:
-   - Read workflow file content
-   - Call nen_validate() to check workflow structure
-   - If validation fails: Fix issues and re-validate
-   - If validation passes: Proceed to deploy
-
-3. DEPLOY:
-   - Call nen_list_workflows() to get context
+2. DEPLOY:
    - Read workflow file content using Read tool
    - Call nen_upload() with files parameter (content-based)
    - Confirm workflowId received
 
-4. RUN:
+3. RUN:
    - result = nen_run(workflowId="...", params={...})
    - Share result.messageId and result.liveViewUrl with user
    - Tell user: "The workflow is running! Watch it execute at the link above and let me know how it goes."
@@ -334,48 +292,14 @@ AI Actions:
    - **🛑 STOP HERE - END RESPONSE IMMEDIATELY**
    - **DO NOT check logs, status, or make any other tool calls after opening browser**
 
-5. ITERATE (when user returns with feedback):
+4. ITERATE (when user returns with feedback):
    - User: "It failed at the password field" or "It should have filled the password"
    - AI: **IMMEDIATELY call get_run_logs()** to see what actually happened
    - AI: Analyze logs, identify the issue, fix workflow, validate, deploy, run again
    - **🛑 STOP AGAIN - END RESPONSE after nen_run()**
    - Wait for user to observe the new run
 
-If validation fails (Step 2):
-   - Fix reported issues in workflow code
-   - Re-validate with nen_validate()
-   - Once validation passes, proceed to Step 3
 ```
-
-## Validation After Changes
-
-**CRITICAL RULE: Always call `nen_validate()` after ANY modification to a workflow file.**
-
-When editing, updating, or fixing a workflow:
-
-1. **Make the changes** to workflow.py
-2. **Immediately validate:**
-   ```python
-   # Read the updated workflow file
-   workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
-   
-   # Validate the changes
-   nen_validate(
-     content=workflow_content,
-     filename="workflow.py"
-   )
-   ```
-3. **Check validation results:**
-   - If validation passes: Proceed to deploy/run
-   - If validation fails: Fix issues and re-validate
-4. **Never deploy without validation** - this prevents runtime errors
-
-**When to validate:**
-- After creating a new workflow
-- After modifying existing workflow code
-- After fixing bugs or errors
-- Before every deployment
-- After making suggested changes
 
 ## Common Pitfalls to Avoid
 
@@ -403,7 +327,7 @@ Automates login to the EzyVet trial portal using provided credentials.
 """
 ```
 
-**This is fundamental Python syntax, not NenAI-specific. Always generate valid Python code.**
+**This is fundamental Python syntax, not Nen-specific. Always generate valid Python code.**
 
 ---
 
@@ -451,7 +375,7 @@ if not agent.verify("Is dashboard visible?"):
     raise RuntimeError("Unable to confirm login — dashboard not visible")
 ```
 
-### 4. Vague Verification Questions ❌
+### 3. Vague Verification Questions ❌
 
 **Problem:** Generic questions lead to unreliable results
 
@@ -468,7 +392,7 @@ agent.verify("Are we still on login.provetcloud.com URL?")
 agent.verify("Is there an 'Invalid email' error message visible?")
 ```
 
-### 5. Insufficient Timeouts ❌
+### 4. Insufficient Timeouts ❌
 
 **Problem:** Operations take longer than default timeout (10s)
 
@@ -484,46 +408,16 @@ if not agent.verify("Is dashboard loaded?", timeout=30):
     pass
 ```
 
-## Important Notes
-
-### 🛑 MOST CRITICAL RULE 🛑
-**AFTER CALLING `nen_run()` AND OPENING THE BROWSER, YOUR RESPONSE MUST END IMMEDIATELY. NO EXCEPTIONS.**
-
-This is the #1 rule that must NEVER be violated:
-- ❌ Do NOT automatically call any debugging tools (`get_run_logs`, `nen_status`)
-- ❌ Do NOT automatically check workflow status or results
-- ❌ Do NOT wait a few seconds and then check status
-- ❌ Do NOT make any additional tool calls after opening the browser
-- ❌ Do NOT try to be helpful by automatically debugging
-- ✅ DO call `nen_run()` to start the workflow
-- ✅ DO automatically open the browser with the `liveViewUrl` using Shell tool
-- ✅ DO end your response immediately after opening the browser
-- ✅ DO wait for user to return with feedback
-- ✅ DO only help with debugging when user explicitly asks
-
-### Other Important Rules
-
-- **Complete steps 1-5, then STOP** - after calling `nen_run()` and opening the browser, wait for user to observe and return with feedback
-- **MANDATORY: Call `nen_validate()` after EVERY workflow file change** - this is non-negotiable
-- **Never skip validation** - always run `nen_validate()` before deploying workflows
-- **Don't skip deployment** - workflows must be deployed to run on NenAI platform
-- **STOP after running** - this applies to EVERY `nen_run()` call, including re-runs during iteration
-- **Be proactive through Step 4** - proceed through Build → Validate → Deploy → Run without asking permission
-- **Wait patiently at Step 4** - let user observe the workflow and come back with feedback
-- **Handle failures gracefully** - if validation or deployment fails, debug and retry; if run fails, wait for user feedback
-- **CRITICAL: Never use localPath in nen_upload()** - Always use content-based upload with the `files` parameter because MCP tools run in a containerized environment and cannot access local filesystem paths
-
 ## Quick Reference
 
 | Step | Action | Tool | After Tool Call |
 |------|--------|------|-----------------|
 | 1. Build | Create workflow.py | `Write`, `StrReplace` | Continue |
 | 1a. Lint | Check syntax | `ReadLints` | Continue |
-| 2. Validate | Validate workflow structure | `nen_validate` | Continue if valid |
-| 3. Deploy | Upload to platform | `nen_upload` (with or without `workflowId`) | Continue |
-| 4. Run | Execute workflow | `nen_run` | Continue |
-| 4a. Open Browser | Open live view URL | `Shell` with `open` command | **🛑 STOP IMMEDIATELY** |
-| 5. Iterate | Fix based on user feedback | Back to Step 1 or 2 | Depends on step |
-| 5a. Debug | **Get logs when user reports issues** | `get_run_logs` | Continue |
+| 2. Deploy | Upload to platform | `nen_upload` (with or without `workflowId`) | Continue |
+| 3. Run | Execute workflow | `nen_run` | Continue |
+| 3a. Open Browser | Open live view URL | `Shell` with `open` command | **🛑 STOP IMMEDIATELY** |
+| 4. Iterate | Fix based on user feedback | Back to Step 1 | Depends on step |
+| 4a. Debug | **Get logs when user reports issues** | `get_run_logs` | Continue |
 
 **⚠️ REMEMBER: After `nen_run()` and opening the browser, your response MUST end immediately. The browser will automatically open and the user will observe the workflow execution and return with feedback.**

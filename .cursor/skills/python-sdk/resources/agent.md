@@ -47,7 +47,7 @@ The VLM takes a screenshot, interprets the instruction, and performs the require
 
 ```python
 # Open Chromium browser (always use this exact pattern)
-agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+agent.execute("Click the Chromium browser icon in the taskbar")
 
 # Navigate to a URL
 agent.execute(f"Navigate to {params.website}")

@@ -17,7 +17,7 @@ def run(params: Params) -> Result:
     agent = Agent()
 
     # Open browser
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 

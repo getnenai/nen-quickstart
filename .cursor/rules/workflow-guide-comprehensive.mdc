@@ -134,7 +134,7 @@ def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
 
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 
@@ -202,7 +202,7 @@ def run(params: Params) -> Result:
     computer = Computer()
 
     # 1. Open the browser
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 
@@ -745,7 +745,7 @@ def run(params: Params) -> Result:
 
     agent = Agent()
     print("Opening browser...")
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     print("Browser opened successfully")
 
     return Result()
@@ -776,7 +776,7 @@ def run(params: Params) -> Result:
 
 **🔍 CRITICAL: When Users Report Issues**
 
-When a user reports that a workflow didn't work as expected, **ALWAYS use the `get_run_logs()` MCP tool** to see what actually happened:
+When a user reports that a workflow didn't work as expected, **ALWAYS use `get_run_logs()`** to see what actually happened:
 
 ```python
 # User says: "It failed" or "It should have clicked the button"
@@ -815,7 +815,7 @@ def run(params: Params) -> Result:
     computer = Computer()
 
     # Phase 1: Open browser
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 
@@ -908,7 +908,7 @@ def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
 
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 
@@ -951,7 +951,7 @@ def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
 
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 
@@ -1009,7 +1009,7 @@ def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
 
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 
@@ -1064,7 +1064,7 @@ def run(params: Params, secure_params: SecureParams) -> Result:
     agent = Agent()
     computer = Computer()
 
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 

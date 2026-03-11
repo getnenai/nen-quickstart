@@ -1,10 +1,10 @@
 ---
-description: All sensitive data (passwords, API keys, tokens, etc.) must use SecureParams with Secure[str] in NenAI workflows
+description: All sensitive data (passwords, API keys, tokens, etc.) must use SecureParams with Secure[str] in Nen workflows
 globs: workflows/**/*.py
 alwaysApply: false
 ---
 
-# Secure Parameters in NenAI Workflows
+# Secure Parameters in Nen Workflows
 
 All sensitive values **must** use `SecureParams` with `Secure[str]` — never put them in `Params`.
 

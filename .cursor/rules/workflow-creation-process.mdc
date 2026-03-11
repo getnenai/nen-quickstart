@@ -9,7 +9,7 @@ When the user wants to create a new workflow, follow this systematic process:
 
 ## ⚠️ PREREQUISITE: API Key Required
 
-**All Nen MCP tools require a valid API key.** Without it, `nen_run`, `nen_upload`, `get_run_logs`, and every other MCP tool will fail.
+**All Nen MCP tools require a valid API key.** Without it, `nen_run`, `nen_update_workflow`, `nen_get_run_logs`, and every other MCP tool will fail.
 
 **Before starting any workflow creation or deployment, confirm the user has their API key configured.**
 
@@ -36,7 +36,7 @@ If the user hasn't done this yet, stop and guide them through setup before proce
 
 **AFTER CALLING `nen_run()` AND OPENING THE BROWSER, YOU MUST IMMEDIATELY STOP AND WAIT FOR USER FEEDBACK.**
 
-- ❌ DO NOT automatically call `get_run_logs()`
+ - ❌ DO NOT automatically call `nen_get_run_logs()`
 - ❌ DO NOT automatically call `nen_status()`
 - ❌ DO NOT automatically check workflow status
 - ❌ DO NOT automatically try to debug or fix issues
@@ -46,6 +46,39 @@ If the user hasn't done this yet, stop and guide them through setup before proce
 - ✅ DO wait for the user to observe and return with feedback
 
 **The browser will automatically open with the workflow live view. The user will watch the execution in real-time and return with feedback. Only after the user returns should you help with debugging, checking logs, or iterating on the workflow.**
+
+## Step 0: Gather Requirements
+
+**Before writing any code, reason about what you know and what you still need.**
+
+When the user describes what they want, pause and think through the workflow end-to-end:
+
+- What would `Params` look like?
+- What would `Result` look like?
+- What are the individual steps the agent would take?
+- Are there any inputs, credentials, URLs, field names, or conditions that are unclear?
+
+Then identify what's genuinely missing or ambiguous — and ask only about those things.
+
+### How to ask
+
+Collect all open questions and ask them in a **single message** — never ask one at a time. Be concise and specific to what the user described. Example:
+
+> Before I build this, a few quick questions:
+> 1. What's the URL for the login page?
+> 2. After logging in, what should the workflow extract or do?
+> 3. Are there any credentials involved, or is everything public?
+
+### When to skip asking
+
+Do not ask if:
+- The request already provides enough detail to build the full workflow
+- You're iterating on an existing workflow (use what's already established)
+- A question has already been answered earlier in the conversation
+
+Once you have enough to proceed, move to Step 1.
+
+---
 
 ## Step 1: Build the Workflow
 
@@ -112,39 +145,39 @@ Before validating and deploying your workflow, verify these common issues:
 
 Deploy to Nen platform using MCP tools:
 
-1. **Upload/deploy the workflow:**
-   
-   **IMPORTANT:** Always use content-based upload (not localPath) because MCP tools run in a containerized environment and cannot access local filesystem paths.
-   
-   For NEW workflows:
-   ```python
-   # First, read the workflow file content
-   workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
-   
-   # Then upload using files parameter
-   nen_upload(
-       files=[{
-           "filename": "workflow.py",
-           "content": workflow_content
-       }],
-       workflowName="[workflow-name]"
-   )
-   ```
-   
-   For UPDATING existing workflows:
-   ```python
-   # Read the workflow file content
-   workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
-   
-   # Update using files parameter with workflowId
-   nen_upload(
-       workflowId="...",
-       files=[{
-           "filename": "workflow.py",
-           "content": workflow_content
-       }]
-   )
-   ```
+1.  **Upload/deploy the workflow:**
+ 
+ **IMPORTANT:** Always use content-based upload (not localPath) because MCP tools run in a containerized environment and cannot access local filesystem paths.
+ 
+ For NEW workflows:
+ ```python
+ # First, read the workflow file content
+ workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
+ 
+ # Then upload using files parameter
+ nen_update_workflow(
+ files=[{
+ "filename": "workflow.py",
+ "content": workflow_content
+ }],
+ workflowName="[workflow-name]"
+ )
+ ```
+ 
+ For UPDATING existing workflows:
+ ```python
+ # Read the workflow file content
+ workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
+ 
+ # Update using files parameter with workflowId
+ nen_update_workflow(
+ workflowId="...",
+ files=[{
+ "filename": "workflow.py",
+ "content": workflow_content
+ }]
+ )
+ ```
 
 3. **Confirm deployment:**
    - Note the returned `workflowId`
@@ -191,7 +224,7 @@ Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
    **AFTER OPENING THE BROWSER, YOUR RESPONSE MUST END. DO NOT CONTINUE.**
    
    - ❌ **Do NOT automatically check logs or status**
-   - ❌ **Do NOT call `get_run_logs()` automatically**
+   - ❌ **Do NOT call `nen_get_run_logs()` automatically**
    - ❌ **Do NOT call `nen_status()` automatically**
    - ❌ **Do NOT try to debug or fix anything automatically**
    - ❌ **Do NOT wait a few seconds and then check status**
@@ -206,7 +239,7 @@ Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
    - Only the user can decide what worked, what failed, and what needs fixing
 
 5. **Wait for user to return:**
-   - User may ask for logs: **ONLY THEN** call `get_run_logs(messageId="...")`
+   - User may ask for logs: **ONLY THEN** call `nen_get_run_logs(messageId="...")`
    - User may report issues: **ONLY THEN** help debug and iterate (see Step 5)
    - User may be satisfied: workflow creation is complete!
 
@@ -221,7 +254,7 @@ After the user observes the workflow execution, iterate based on their feedback:
 
 2. **🔍 CRITICAL: When to Check Logs**
    
-   **ALWAYS call `get_run_logs()` when the user:**
+   **ALWAYS call `nen_get_run_logs()` when the user:**
    - Reports the workflow failed or didn't work
    - Describes what "should have happened" but didn't
    - Says something like "it should have clicked..." or "it was supposed to..."
@@ -238,9 +271,9 @@ After the user observes the workflow execution, iterate based on their feedback:
    - **Without logs, you're guessing. With logs, you know.**
    
    **How to use logs:**
-   ```python
-   # ALWAYS get logs when user reports issues
-   get_run_logs(messageId="...")
+ ```python
+ # ALWAYS get logs when user reports issues
+ nen_get_run_logs(messageId="...")
    
    # Then analyze the logs to:
    # - Find where the workflow failed
@@ -257,9 +290,9 @@ After the user observes the workflow execution, iterate based on their feedback:
    - Use log insights to fix the workflow code
 
 4. **Fix and re-deploy:**
-   - Make changes to workflow.py based on feedback
-   - Deploy the updated workflow: `nen_upload(workflowId="...", files=[...])`
-   - Run again: `result = nen_run(...)`
+ - Make changes to workflow.py based on feedback
+ - Deploy the updated workflow: `nen_update_workflow(workflowId="...", files=[...])`
+ - Run again: `result = nen_run(...)`
    - **Open browser automatically**: `Shell(f'open "{result.liveViewUrl}"')`
    - **🛑 IMMEDIATELY STOP - End your response here and wait for user to observe again**
 
@@ -280,9 +313,9 @@ AI Actions:
    - Check syntax with ReadLints
 
 2. DEPLOY:
-   - Read workflow file content using Read tool
-   - Call nen_upload() with files parameter (content-based)
-   - Confirm workflowId received
+ - Read workflow file content using Read tool
+ - Call nen_update_workflow() with files parameter (content-based)
+ - Confirm workflowId received
 
 3. RUN:
    - result = nen_run(workflowId="...", params={...})
@@ -414,10 +447,10 @@ if not agent.verify("Is dashboard loaded?", timeout=30):
 |------|--------|------|-----------------|
 | 1. Build | Create workflow.py | `Write`, `StrReplace` | Continue |
 | 1a. Lint | Check syntax | `ReadLints` | Continue |
-| 2. Deploy | Upload to platform | `nen_upload` (with or without `workflowId`) | Continue |
+| 2. Deploy | Upload to platform | `nen_update_workflow` (with or without `workflowId`) | Continue |
 | 3. Run | Execute workflow | `nen_run` | Continue |
 | 3a. Open Browser | Open live view URL | `Shell` with `open` command | **🛑 STOP IMMEDIATELY** |
 | 4. Iterate | Fix based on user feedback | Back to Step 1 | Depends on step |
-| 4a. Debug | **Get logs when user reports issues** | `get_run_logs` | Continue |
+| 4a. Debug | **Get logs when user reports issues** | `nen_get_run_logs` | Continue |
 
 **⚠️ REMEMBER: After `nen_run()` and opening the browser, your response MUST end immediately. The browser will automatically open and the user will observe the workflow execution and return with feedback.**

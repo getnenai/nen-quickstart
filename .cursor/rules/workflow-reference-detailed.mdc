@@ -304,7 +304,7 @@ computer.scroll("up", 5)
 computer.scroll("down", 3, x=400, y=300)  # at position
 ```
 
-**mouse.click_at() parameters:**
+**computer.click_at() parameters:**
 - `x` (int), `y` (int): Screen coordinates
 - `button` (str): `"left"`, `"right"`, or `"middle"` (default: `"left"`)
 

@@ -231,14 +231,14 @@ The `nen` SDK provides these main primitives:
 | `agent.execute()` | Execute natural language action | Yes | Complex UI interactions, dynamic content |
 | `agent.verify()` | Check UI state | Yes | Verify page loaded, confirm success |
 | `agent.extract()` | Extract structured data | Yes | Read tables, forms, lists |
-| `computer.mouse` | Direct mouse control | No | Known coordinates, precise clicks |
+| `computer.click_at/move/scroll` | Direct mouse control | No | Known coordinates, precise clicks |
 | `computer.type/press/hotkey` | Direct keyboard control | No | Type text, press keys, shortcuts |
 
 **Decision Tree for Choosing Primitives:**
 
 ```
 Need to interact with UI?
-├─ Know exact coordinates? → Use computer.mouse/computer.hotkey()/computer.press()
+├─ Know exact coordinates? → Use computer.click_at()/computer.hotkey()/computer.press()
 ├─ Need to find element visually? → Use agent.execute()
 ├─ Just checking state? → Use agent.verify()
 └─ Need to extract data? → Use agent.extract()
@@ -334,7 +334,7 @@ agent.execute("Find and click each 'Download' link on the page", max_iterations=
 - Complex multi-step interaction
 - UI structure may vary
 
-**Use `computer.mouse`/`computer.type()`/`computer.press()`/`computer.hotkey()` when:**
+**Use `computer.click_at()`/`computer.move()`/`computer.scroll()`/`computer.type()`/`computer.press()`/`computer.hotkey()` when:**
 - Know exact coordinates
 - Repeating same action precisely
 - Performance is critical (avoid VLM overhead)

@@ -583,8 +583,6 @@ computer.hotkey("ctrl", "shift", "s") # save as
 
 ### Mouse
 
-Mouse methods are called **directly on `computer`** — there is no `computer.mouse` sub-object.
-
 ```python
 # Left click
 computer.click_at(100, 200)

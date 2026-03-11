@@ -286,8 +286,6 @@ computer.hotkey("ctrl", "shift", "s")  # Save As
 
 #### Mouse methods
 
-Mouse methods are called **directly on `computer`** — there is no `computer.mouse` sub-object.
-
 ```python
 # Click at coordinates
 computer.click_at(500, 300)

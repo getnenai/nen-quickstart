@@ -70,7 +70,7 @@ Show me the available Nen Platform MCP tools
 Ask your AI agent to create a workflow:
 
 ```
-Create a workflow that navigates to google.com and takes a screenshot
+Create a workflow that goes to news.ycombinator.com and returns the title and URL of the 3rd article
 ```
 
 The AI will create a workflow and run it using the available MCP tools.

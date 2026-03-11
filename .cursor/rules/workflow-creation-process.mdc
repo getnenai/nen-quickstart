@@ -9,7 +9,7 @@ When the user wants to create a new workflow, follow this systematic process:
 
 ## ⚠️ PREREQUISITE: API Key Required
 
-**All Nen MCP tools require a valid API key.** Without it, `nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, and every other MCP tool will fail.
+**All Nen MCP tools require a valid API key.** Without it, `nen_run`, `nen_upload`, `get_run_logs`, and every other MCP tool will fail.
 
 **Before starting any workflow creation or deployment, confirm the user has their API key configured.**
 

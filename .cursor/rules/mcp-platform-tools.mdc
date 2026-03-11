@@ -9,7 +9,7 @@ This guide helps the AI assistant understand **when** and **how** to use Nen Pla
 
 ## ⚠️ PREREQUISITE: API Key Required
 
-**All Nen MCP tools require a valid API key to function.** Without it, every MCP tool call (`nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, etc.) will fail with an authentication error.
+**All Nen MCP tools require a valid API key to function.** Without it, every MCP tool call (`nen_run`, `nen_upload`, `get_run_logs`, etc.) will fail with an authentication error.
 
 **If a user tries to use any MCP tool and it fails, check whether they have set up their API key first.**
 
@@ -48,7 +48,6 @@ This guide helps the AI assistant understand **when** and **how** to use Nen Pla
 
 ### Workflow Creation & Management
 - `nen_create_workflow` - Generate FSM JSON workflow files
-- `nen_validate` - Validate Python workflow structure before deployment
 - `update_workflow` - Update/publish workflow files (supports both JSON and Python)
 - `nen_list_workflows` - List all workflows in deployment
 - `nen_upload` - Upload workflows to Nen platform
@@ -122,31 +121,16 @@ AI Action: Use nen_list_workflows() to list all available workflows
 
 ---
 
-#### 4. **Validating Workflows Before Deployment**
-
-```
-User: "Validate my workflow" OR "Is my workflow ready to deploy?"
-AI Action: Use nen_validate() to check workflow structure
-```
-
-**Why:** Catches errors before deployment, ensures workflow will execute correctly.
-
-**Tools:** `nen_validate`
-
----
-
-#### 5. **Publishing/Deploying Workflows**
+#### 4. **Publishing/Deploying Workflows**
 
 ```
 User: "Deploy my workflow to production"
-AI Action: 
-  1. Use nen_validate() to check workflow first
-  2. If validation passes, use update_workflow() or nen_upload()
+AI Action: Use update_workflow() or nen_upload() to deploy
 ```
 
-**Why:** MCP tools handle platform deployment. Always validate before deploying.
+**Why:** MCP tools handle platform deployment.
 
-**Tools:** `nen_validate`, `update_workflow`, `nen_upload`
+**Tools:** `update_workflow`, `nen_upload`
 
 ---
 
@@ -200,14 +184,14 @@ AI Action: Use Read tool ❌ NOT nen_list_workflows
 #### 3. **Python Syntax Checking**
 ```
 User: "Check if my Python has syntax errors"
-AI Action: Use ReadLints tool ❌ NOT nen_validate
+AI Action: Use ReadLints tool
 ```
 
 **Why:** Basic Python syntax checking doesn't require API calls.
 
 **Use Instead:** `ReadLints` tool
 
-**Note:** Use `nen_validate` for workflow structure validation (Pydantic models, function signatures, etc.)
+**Note:** Use `ReadLints` for all Python syntax and structure checking.
 
 ---
 
@@ -228,13 +212,12 @@ AI Action: Use StrReplace ❌ NOT update_workflow
 | User Request | Use MCP? | Tool | Alternative |
 |-------------|----------|------|-------------|
 | "Create a new workflow" | ⚠️ Ask format first | `nen_create_workflow` (FSM) | Manual authoring (Python SDK) |
-| "Validate my workflow" | ✅ Yes | `nen_validate` | N/A |
 | "Run my workflow" | ✅ Yes | `nen_run` | N/A |
 | "Why did it fail?" or "It should have..." | ✅ Yes - ALWAYS | `get_run_logs` | N/A |
 | "List my workflows" | ✅ Yes | `nen_list_workflows` | `LS` (for local files) |
 | "Edit workflow code" | ❌ No | N/A | `StrReplace` |
 | "Show workflow code" | ❌ No | N/A | `Read` |
-| "Deploy workflow" | ✅ Yes | `nen_validate` + `update_workflow` | N/A |
+| "Deploy workflow" | ✅ Yes | `update_workflow` | N/A |
 | "Download artifacts" | ✅ Yes | `nen_artifacts` | N/A |
 | "Check Python syntax" | ❌ No | N/A | `ReadLints` |
 | "Debug execution" or describe expected behavior | ✅ Yes - PROACTIVELY | `get_run_logs` | N/A |
@@ -267,8 +250,7 @@ AI Action: Use StrReplace ❌ NOT update_workflow
 
 ### For Workflow Updates:
 1. Local changes: Edit files directly with `StrReplace`
-2. Validation: Use `nen_validate()` to check changes
-3. Deployment: Use `update_workflow()` to publish changes
+2. Deployment: Use `update_workflow()` to publish changes
 
 ---
 
@@ -299,29 +281,22 @@ AI Actions:
 4. Analyze logs and suggest fixes
 ```
 
-### Example 3: Validating and Deploying a Workflow
+### Example 3: Deploying a Workflow
 
 ```
 User: "Deploy my workflow to production"
 
 AI Actions:
 1. Read local workflow files (workflow.py)
-2. Call nen_validate() to check workflow structure
-3. If validation passes, call update_workflow(workflowId="...", files=[...])
-4. Confirm successful deployment
+2. Call update_workflow(workflowId="...", files=[...])
+3. Confirm successful deployment
 ```
 
 ---
 
 ## Best Practices
 
-### 1. **Always Validate Before Deploying**
-Before deploying any workflow to the platform:
-- Use `nen_validate()` to check workflow structure
-- Fix any validation errors before proceeding
-- Only deploy after validation passes
-
-### 2. **Always Check Local Files First**
+### 1. **Always Check Local Files First**
 Before calling MCP tools, check if the information is available locally:
 - Use `Read` for file contents
 - Use `LS` or `Glob` to find files
@@ -356,12 +331,6 @@ If MCP tools fail (auth issues, network errors):
 ---
 
 ## Tool-Specific Notes
-
-### `nen_validate`
-- **Purpose:** Validates Python workflow structure before deployment
-- **Checks:** Pydantic models, function signatures, required imports, type hints
-- **Use when:** Before every deployment or when user asks to validate
-- **Required:** Always call before `nen_upload()` or `update_workflow()`
 
 ### `nen_create_workflow`
 - **Generates:** FSM JSON workflows (not Python SDK)
@@ -404,8 +373,7 @@ If MCP tools fail (auth issues, network errors):
 ## Summary
 
 **Key Principles:**
-1. **Always validate before deploying** using `nen_validate()`
-2. **Use MCP for platform interactions** (validation, execution, deployment, logs)
+1. **Use MCP for platform interactions** (execution, deployment, logs)
 3. **Always check logs when debugging** - Use `get_run_logs()` whenever user reports issues or describes expected behavior
 4. **Use local tools for code operations** (editing, reading, syntax checking)
 5. **Clarify format preferences** when creating new workflows
@@ -413,10 +381,9 @@ If MCP tools fail (auth issues, network errors):
 7. **Prioritize user's project standards** (Python SDK in this case)
 
 **Quick Reference:**
-- Validate workflow → `nen_validate`
 - Execute workflow → `nen_run`
 - **Debug ANY issues** → **`get_run_logs`** (ALWAYS check logs when user reports problems or explains expected behavior)
-- Deploy workflow → `nen_validate` + `update_workflow`
+- Deploy workflow → `update_workflow`
 - List workflows → `nen_list_workflows`
 - Create workflow → Ask format first, then choose approach
 - Edit workflow → Direct file editing (not MCP)

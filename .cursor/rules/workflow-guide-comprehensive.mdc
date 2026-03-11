@@ -556,7 +556,7 @@ The `Computer` class provides **deterministic** (non-VLM) keyboard and mouse con
 
 ```python
 computer = Computer()
-computer.mouse.click_at(500, 300)
+computer.click_at(500, 300)
 computer.type("hello@example.com")
 computer.press("Return")
 ```
@@ -583,20 +583,22 @@ computer.hotkey("ctrl", "shift", "s") # save as
 
 ### Mouse
 
+Mouse methods are called **directly on `computer`** — there is no `computer.mouse` sub-object.
+
 ```python
 # Left click
-computer.mouse.click_at(100, 200)
+computer.click_at(100, 200)
 
 # Right click
-computer.mouse.click_at(100, 200, button="right")
+computer.click_at(100, 200, button="right")
 
 # Move cursor
-computer.mouse.move(500, 300)
+computer.move(500, 300)
 
 # Scroll
-computer.mouse.scroll("down", 3)
-computer.mouse.scroll("up", 5)
-computer.mouse.scroll("down", 3, x=400, y=300)  # scroll at position
+computer.scroll("down", 3)
+computer.scroll("up", 5)
+computer.scroll("down", 3, x=400, y=300)  # scroll at position
 ```
 
 ---
@@ -869,7 +871,7 @@ agent.execute("Click the blue submit button")
 agent.execute("Find and hover over the submit button")
 
 # If position is now known, use direct control
-computer.mouse.click_at(500, 600)  # Faster than agent.execute("Click submit")
+computer.click_at(500, 600)  # Faster than agent.execute("Click submit")
 ```
 
 **3. Appropriate Timeouts**

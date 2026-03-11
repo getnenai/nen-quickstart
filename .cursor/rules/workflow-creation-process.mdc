@@ -13,13 +13,17 @@ When the user wants to create a new workflow, follow this systematic process:
 
 **Before starting any workflow creation or deployment, confirm the user has their API key configured.**
 
-The user's `~/.cursor/mcp.json` must include the Nen Platform entry with their API key:
+The user's `~/.cursor/mcp.json` must include the Nen Platform entry with their API key (merge into the existing `mcpServers` object if one already exists):
 
 ```json
-"Nen Platform": {
-  "url": "https://mcp.getnen.ai/v1",
-  "headers": {
-    "x-api-key": "YOUR_API_KEY_HERE"
+{
+  "mcpServers": {
+    "Nen Platform": {
+      "url": "https://mcp.getnen.ai/v1",
+      "headers": {
+        "x-api-key": "YOUR_API_KEY_HERE"
+      }
+    }
   }
 }
 ```

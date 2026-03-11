@@ -15,13 +15,17 @@ This guide helps the AI assistant understand **when** and **how** to use Nen Pla
 
 ### How to set up the API key:
 1. Obtain your Nen API key from the Nen platform/dashboard
-2. Open `~/.cursor/mcp.json` and add the following entry:
+2. Open `~/.cursor/mcp.json` and ensure it contains the following (merge into the existing `mcpServers` object if one already exists):
 
 ```json
-"Nen Platform": {
-  "url": "https://mcp.getnen.ai/v1",
-  "headers": {
-    "x-api-key": "YOUR_API_KEY_HERE"
+{
+  "mcpServers": {
+    "Nen Platform": {
+      "url": "https://mcp.getnen.ai/v1",
+      "headers": {
+        "x-api-key": "YOUR_API_KEY_HERE"
+      }
+    }
   }
 }
 ```

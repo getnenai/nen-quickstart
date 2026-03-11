@@ -3,9 +3,9 @@ description: "Comprehensive guide for complex workflow authoring including advan
 alwaysApply: false
 ---
 
-# CUP Workflow Authoring Guide
+# Nen Workflow Authoring Guide
 
-Comprehensive guide for authoring CUP workflows using the `nen` SDK (`Agent`, `Computer`, `Secure`).
+Comprehensive guide for authoring Nen workflows using the `nen` SDK (`Agent`, `Computer`, `Secure`).
 
 ## Table of Contents
 
@@ -27,9 +27,9 @@ Comprehensive guide for authoring CUP workflows using the `nen` SDK (`Agent`, `C
 
 ## Introduction
 
-### What are CUP Workflows?
+### What are Nen Workflows?
 
-CUP (Computer Use Plus) workflows are Python scripts that automate computer interactions using a combination of:
+Nen workflows are Python scripts that automate computer interactions using a combination of:
 
 - **VLM (Vision Language Model)** - Interprets screen content and makes intelligent decisions
 - **Computer use tools** - Performs mouse clicks, keyboard input, and screenshots
@@ -54,7 +54,7 @@ Workflows run in isolated Docker sandbox containers with full desktop environmen
 │           ▼                             │
 │  ┌──────────────────┐                  │
 │  │  Parent Service  │                  │
-│  │  (CUP Backend)   │                  │
+│  │  (Nen Backend)   │                  │
 │  └────────┬─────────┘                  │
 │           │                             │
 │           │ VLM API calls               │

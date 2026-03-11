@@ -44,7 +44,10 @@ class Result(BaseModel):
 
 def run(params: Params) -> Result:
     agent = Agent()
-    agent.execute(f"Open the browser at {params.website}")
+    agent.execute("Click the Chromium browser icon in the taskbar")
+    if not agent.verify("Is the Chromium browser open?", timeout=10):
+        raise RuntimeError("Failed to open Chromium browser")
+    agent.execute(f"Navigate to {params.website}")
     if not agent.verify("Is the page fully loaded in the browser?", timeout=20):
         raise RuntimeError(f"Failed to load {params.website}")
     data = agent.extract("What is the page title?", Result.model_json_schema())

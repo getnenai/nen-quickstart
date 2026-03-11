@@ -57,7 +57,6 @@ This guide helps the AI assistant understand **when** and **how** to use Nen Pla
 - `nen_list_runs` - List workflow execution history
 - `get_run_logs` - Retrieve execution logs for debugging
 - `get_run_video` - Get video recording of workflow execution
-- `nen_artifacts` - Download all artifacts (video, logs) via rsync
 - `nen_status` - Check Nen API/service status
 
 ---
@@ -98,7 +97,7 @@ AI Action:
 - Logs reveal where validations failed or succeeded
 - Without logs, you're guessing; with logs, you know the truth
 
-**Tools:** `get_run_logs` (always start here), `get_run_video`, `nen_artifacts`
+**Tools:** `get_run_logs` (always start here), `get_run_video`
 
 **Common debugging scenarios:**
 - User: "It didn't click the button" → Get logs to see if button was found
@@ -218,7 +217,6 @@ AI Action: Use StrReplace ❌ NOT update_workflow
 | "Edit workflow code" | ❌ No | N/A | `StrReplace` |
 | "Show workflow code" | ❌ No | N/A | `Read` |
 | "Deploy workflow" | ✅ Yes | `update_workflow` | N/A |
-| "Download artifacts" | ✅ Yes | `nen_artifacts` | N/A |
 | "Check Python syntax" | ❌ No | N/A | `ReadLints` |
 | "Debug execution" or describe expected behavior | ✅ Yes - PROACTIVELY | `get_run_logs` | N/A |
 
@@ -246,7 +244,7 @@ AI Action: Use StrReplace ❌ NOT update_workflow
 1. **ALWAYS use `get_run_logs()` first** when user reports issues or explains expected behavior - fastest, most detailed, shows actual workflow execution
 2. **Proactively check logs** when user says "it should have..." or describes what they expected to happen
 3. Use `get_run_video()` if visual debugging needed after reviewing logs
-4. Use `nen_artifacts()` to download all materials locally for offline analysis
+4. Use `get_run_video()` for visual debugging after reviewing logs
 
 ### For Workflow Updates:
 1. Local changes: Edit files directly with `StrReplace`
@@ -362,11 +360,6 @@ If MCP tools fail (auth issues, network errors):
   - Look for validation results to see where checks failed
   - Check VLM reasoning to understand why it made certain decisions
   - Compare log output with user's description of expected behavior
-
-### `nen_artifacts`
-- **Downloads:** Video + logs via rsync
-- **Use when:** User needs persistent local copies
-- **Alternative:** `get_run_logs` for logs only (faster)
 
 ---
 

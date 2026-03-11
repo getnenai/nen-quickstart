@@ -62,7 +62,7 @@ Create the Python SDK workflow file using `nen.workflow` primitives:
    - Include proper docstring with workflow description
    - Define Pydantic `Params` and `Result` models with type hints
    - Implement `run(params: Params) -> Result` function
-   - Use SDK primitives: `Agent` (`agent.execute()`, `agent.verify()`, `agent.extract()`), `Computer` (`computer.type()`, `computer.press()`, `computer.hotkey()`, `computer.mouse`)
+   - Use SDK primitives: `Agent` (`agent.execute()`, `agent.verify()`, `agent.extract()`), `Computer` (`computer.type()`, `computer.press()`, `computer.hotkey()`, `computer.click_at()`, `computer.move()`, `computer.scroll()`)
    - Return Pydantic `Result` model with workflow output data fields
 
 3. **Validate locally:**

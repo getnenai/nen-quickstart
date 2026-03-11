@@ -284,25 +284,25 @@ computer.hotkey("ctrl", "shift", "s")  # Save As
 
 ---
 
-#### computer.mouse
+#### Mouse methods
 
 ```python
 # Click at coordinates
-computer.mouse.click_at(500, 300)
+computer.click_at(500, 300)
 
 # Right click
-computer.mouse.click_at(500, 300, button="right")
+computer.click_at(500, 300, button="right")
 
 # Move cursor
-computer.mouse.move(400, 200)
+computer.move(400, 200)
 
 # Scroll
-computer.mouse.scroll("down", 3)
-computer.mouse.scroll("up", 5)
-computer.mouse.scroll("down", 3, x=400, y=300)  # at position
+computer.scroll("down", 3)
+computer.scroll("up", 5)
+computer.scroll("down", 3, x=400, y=300)  # at position
 ```
 
-**mouse.click_at() parameters:**
+**computer.click_at() parameters:**
 - `x` (int), `y` (int): Screen coordinates
 - `button` (str): `"left"`, `"right"`, or `"middle"` (default: `"left"`)
 
@@ -686,7 +686,7 @@ Need to interact with UI?
 ├─ Extracting data? → agent.extract()
 │
 ├─ Know exact coordinates?
-│  ├─ Yes → computer.mouse.click_at() or computer.hotkey()/computer.press()
+│  ├─ Yes → computer.click_at() or computer.hotkey()/computer.press()
 │  └─ No → agent.execute()
 │
 └─ Complex multi-step?

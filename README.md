@@ -15,8 +15,8 @@ Build computer use automations using natural language in Cursor. Author, test, a
 ### Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/getnen/mcp-quickstart.git
-cd mcp-quickstart
+git clone https://github.com/getnen/nen-quickstart.git
+cursor nen-quickstart
 ```
 
 ### Step 2: Configure Cursor
@@ -41,7 +41,10 @@ If the automatic installation doesn't work:
 {
   "mcpServers": {
     "Nen Platform": {
-      "url": "https://mcp.getnen.ai/v1"
+      "url": "https://mcp.getnen.ai/v1",
+      "headers": {
+        "x-api-key": "YOUR_API_KEY_HERE"
+      }
     }
   }
 }

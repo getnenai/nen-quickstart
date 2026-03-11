@@ -1,6 +1,6 @@
 # Documentation Guide
 
-This guide helps you navigate the NenAI MCP Quickstart documentation and find what you need.
+This guide helps you navigate the Nen MCP Quickstart documentation and find what you need.
 
 ---
 
@@ -83,7 +83,7 @@ Follow this progression for the best learning experience:
 **Model Context Protocol (MCP)**
 - https://modelcontextprotocol.io - Official specification
 
-**NenAI Platform**
+**Nen Platform**
 - Contact your customer engineer for API keys, support, and platform access
 
 ---
@@ -93,4 +93,4 @@ Follow this progression for the best learning experience:
 Found an issue or have a suggestion?
 - Open an issue on GitHub
 - Submit a pull request
-- Contact your NenAI customer engineer
+- Contact your Nen customer engineer

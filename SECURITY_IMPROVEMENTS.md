@@ -10,7 +10,7 @@ Previously, setup instructions often led users to paste secrets directly into `~
 ```json
 {
   "mcpServers": {
-    "nenai": {
+    "nen": {
       "url": "https://your-remote-mcp-url",
       "headers": {
         "X-Api-Key": "actual_key_here"
@@ -24,7 +24,7 @@ Previously, setup instructions often led users to paste secrets directly into `~
 ```json
 {
   "mcpServers": {
-    "nenai": {
+    "nen": {
       "url": "${env:NEN_MCP_URL}",
       "headers": {
         "X-Api-Key": "${env:NEN_API_KEY}"

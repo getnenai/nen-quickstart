@@ -1,4 +1,4 @@
-# NenAI MCP Quickstart - Documentation Map
+# Nen MCP Quickstart - Documentation Map
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

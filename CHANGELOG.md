@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the NenAI MCP Quickstart repository.
+All notable changes to the Nen MCP Quickstart repository.
 
 ## [1.0.0] - 2026-01-14
 

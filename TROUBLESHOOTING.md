@@ -38,7 +38,7 @@
    ```bash
    python3 -m json.tool ~/.cursor/mcp.json >/dev/null && echo "OK"
    ```
-2. Try reinstalling using the deeplink: [Install Nen Platform MCP Server](cursor://anysphere.cursor-deeplink/mcp/install?config=eyJOZW4gUGxhdGZvcm0iOnsidXJsIjoiaHR0cHM6Ly9tY3AuZ2V0bmVuLmFpL3YxIn19)
+2. Try reinstalling using the deeplink: [Install Nen Platform MCP Server](cursor://anysphere.cursor-deeplink/mcp/install?name=Nen%20Platform&config=eyJ1cmwiOiJodHRwczovL21jcC5nZXRuZW4uYWkvdjEifQ==)
 
 ---
 

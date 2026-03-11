@@ -25,7 +25,7 @@
 
 3. Check Cursor logs for MCP errors:
    - Open Cursor Developer Tools (Help → Toggle Developer Tools)
-   - Look for errors mentioning "MCP" or "nenai"
+   - Look for errors mentioning "MCP" or "nen"
 
 ---
 

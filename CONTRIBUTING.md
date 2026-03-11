@@ -28,7 +28,7 @@ Thank you for your interest in contributing! This guide will help you create hig
 
 ```bash
 # Clone the repository
-git clone https://github.com/getnenai/mcp-quickstart.git
+git clone https://github.com/getnen/mcp-quickstart.git
 cd mcp-quickstart
 ```
 

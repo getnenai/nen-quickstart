@@ -15,7 +15,7 @@ Build computer use automations using natural language in Cursor. Author, test, a
 ### Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/getnenai/mcp-quickstart.git
+git clone https://github.com/getnen/mcp-quickstart.git
 cd mcp-quickstart
 ```
 

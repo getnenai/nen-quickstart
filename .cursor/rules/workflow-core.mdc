@@ -19,7 +19,7 @@ You are an AI assistant helping to author NenAI computer use workflows using the
 **IMPORTANT: Browser Management**
 - Chromium browser needs to be opened at the start of workflows
 - ❌ **DO NOT use** `agent.execute("Open Chromium")` or `agent.execute("Open Google Chrome")` - this causes the VLM to use bash commands to install/launch browsers
-- ✅ **DO use** `agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")` or similar GUI-based instructions
+- ✅ **DO use** `agent.execute("Click the Chromium browser icon in the taskbar")` or similar GUI-based instructions
 - After opening, verify with `agent.verify("Is the Chromium browser open?")`
 
 **Common mistakes:**
@@ -75,7 +75,7 @@ def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
 
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 
@@ -188,7 +188,7 @@ computer.press("BackSpace")
 ### Browser Automation
 ```python
 # Open Chromium using GUI-based instruction (avoids bash commands)
-agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+agent.execute("Click the Chromium browser icon in the taskbar")
 if not agent.verify("Is the Chromium browser open?", timeout=10):
     raise RuntimeError("Failed to open Chromium browser")  # unrecoverable
 
@@ -266,4 +266,4 @@ When working on complex workflows or need detailed guidance:
 
 ---
 
-**Note:** This project uses the Python SDK approach for workflows, NOT the FSM (Finite State Machine) JSON approach.
+**Note:** This project uses the Python SDK approach for workflows.

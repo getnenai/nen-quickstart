@@ -70,7 +70,7 @@ Rules:
 
 | JSON action type | Python SDK equivalent |
 |-----------------|----------------------|
-| Open browser | `agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")` |
+| Open browser | `agent.execute("Click the Chromium browser icon in the taskbar")` |
 | Navigate / open URL | `agent.execute(f"Navigate to {params.url}")` |
 | Click element | `agent.execute("Click the [specific element name and location]")` |
 | Type text | `computer.type(params.field)` (after clearing field with `ctrl+a` + `BackSpace`) |
@@ -111,7 +111,7 @@ def run(params: Params, secure_params: SecureParams) -> Result:  # drop secure_p
     computer = Computer()
 
     # Phase 1: Open browser
-    agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")
+    agent.execute("Click the Chromium browser icon in the taskbar")
     if not agent.verify("Is the Chromium browser open?", timeout=10):
         raise RuntimeError("Failed to open Chromium browser")
 

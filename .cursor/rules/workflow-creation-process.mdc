@@ -5,30 +5,6 @@ alwaysApply: true
 
 # NenAI Workflow Creation Process
 
-## 🔴 CURRENT MODE: DOWN (MCP Server Offline)
-
-> **Set this to `ONLINE` once the MCP server is restored.**
-
-### 🚨 DOWN MODE — Active now. Only Step 1 applies. 🚨
-
-**The NenAI MCP server is offline. Do NOT attempt to use any MCP tools.**
-
-- ❌ Skip Step 2 (Validate via `nen_validate`) — cannot be reached
-- ❌ Skip Step 3 (Deploy via `nen_upload`) — cannot be reached
-- ❌ Skip Step 4 (Run via `nen_run`) — cannot be reached
-- ✅ Only perform Step 1 (Build) — write and review `workflow.py` locally
-- ✅ If the user asks to deploy or run, tell them the MCP server is currently down
-
-> ⛔ **PRECEDENCE RULE: While in DOWN mode, all steps and instructions below that reference MCP tools (`nen_validate`, `nen_upload`, `nen_run`, `nen_list_workflows`, `get_run_logs`, `nen_status`) are disabled. Only the build/local-authoring guidance in Step 1 applies.**
-
----
-
-### 🟢 ONLINE MODE — Use only when MCP server is confirmed back online.
-
-> The full Steps 1–5 process below applies only when the mode above is set to **ONLINE**.
-
----
-
 When the user wants to create a new workflow, follow this systematic process:
 
 ## ⚠️ CRITICAL RULE: STOP AFTER RUNNING WORKFLOWS ⚠️

@@ -7,6 +7,29 @@ alwaysApply: false
 
 This guide helps the AI assistant understand **when** and **how** to use NenAI Platform MCP tools during workflow authoring.
 
+## ⚠️ PREREQUISITE: API Key Required
+
+**All NenAI MCP tools require a valid API key to function.** Without it, every MCP tool call (`nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, etc.) will fail with an authentication error.
+
+**If a user tries to use any MCP tool and it fails, check whether they have set up their API key first.**
+
+### How to set up the API key:
+1. Obtain your NenAI API key from the NenAI platform/dashboard
+2. Open `~/.cursor/mcp.json` and add the following entry:
+
+```json
+"NenAI Platform": {
+  "url": "https://mcp.getnen.ai/v1",
+  "headers": {
+    "x-api-key": "YOUR_API_KEY_HERE"
+  }
+}
+```
+
+**Tell the user this upfront if they haven't set up their API key yet.** Do not attempt to run workflows or call any MCP tools until the user confirms their API key is configured.
+
+---
+
 ## Important Context: Python SDK vs FSM JSON
 
 **Project Standard:** This project uses **Python SDK workflows** (`nen.workflow`), as documented in `.cursorrules`.

@@ -7,6 +7,27 @@ alwaysApply: true
 
 When the user wants to create a new workflow, follow this systematic process:
 
+## ⚠️ PREREQUISITE: API Key Required
+
+**All NenAI MCP tools require a valid API key.** Without it, `nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, and every other MCP tool will fail.
+
+**Before starting any workflow creation or deployment, confirm the user has their API key configured.**
+
+The user's `~/.cursor/mcp.json` must include the NenAI Platform entry with their API key:
+
+```json
+"NenAI Platform": {
+  "url": "https://mcp.getnen.ai/v1",
+  "headers": {
+    "x-api-key": "YOUR_API_KEY_HERE"
+  }
+}
+```
+
+If the user hasn't done this yet, stop and guide them through setup before proceeding.
+
+---
+
 ## ⚠️ CRITICAL RULE: STOP AFTER RUNNING WORKFLOWS ⚠️
 
 **AFTER CALLING `nen_run()` AND OPENING THE BROWSER, YOU MUST IMMEDIATELY STOP AND WAIT FOR USER FEEDBACK.**

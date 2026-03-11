@@ -13,7 +13,7 @@ This project uses modern `.mdc` (Markdown with frontmatter) files for intelligen
 ## Available Rules
 
 ### workflow-core.mdc
-**Always applies | ~170 lines**
+**Always applies | ~270 lines**
 
 Core Nen workflow authoring principles loaded in every session.
 
@@ -29,7 +29,7 @@ Core Nen workflow authoring principles loaded in every session.
 ---
 
 ### workflow-creation-process.mdc
-**Always applies | ~200 lines**
+**Always applies | ~420 lines**
 
 Systematic 4-step process for creating workflows: build → validate → deploy → run.
 
@@ -46,7 +46,7 @@ Systematic 4-step process for creating workflows: build → validate → deploy 
 ---
 
 ### workflow-python-sdk.mdc
-**Agent-decided | ~500 lines**
+**Agent-decided | ~410 lines**
 
 Python SDK execution environment and best practices guide.
 
@@ -69,7 +69,7 @@ Python SDK execution environment and best practices guide.
 ---
 
 ### workflow-guide-comprehensive.mdc
-**Agent-decided | 2,542 lines**
+**Agent-decided | ~1,240 lines**
 
 Comprehensive guide for complex workflow authoring tasks.
 
@@ -92,7 +92,7 @@ Comprehensive guide for complex workflow authoring tasks.
 ---
 
 ### workflow-reference-detailed.mdc
-**Agent-decided | 872 lines**
+**Agent-decided | ~790 lines**
 
 Detailed SDK reference with function signatures and examples.
 
@@ -114,7 +114,7 @@ Detailed SDK reference with function signatures and examples.
 ---
 
 ### mcp-platform-tools.mdc
-**Agent-decided | ~400 lines**
+**Agent-decided | ~430 lines**
 
 Nen MCP tool usage for platform operations including validation.
 
@@ -139,17 +139,17 @@ Nen MCP tool usage for platform operations including validation.
 ## Context Loading Strategy
 
 ### Automatic Context (Always Loaded)
-- `workflow-core.mdc` (~180 lines)
-- `workflow-creation-process.mdc` (~200 lines)
+- `workflow-core.mdc` (~270 lines)
+- `workflow-creation-process.mdc` (~420 lines)
 
-**Total: ~380 lines baseline context**
+**Total: ~690 lines baseline context**
 
 ### On-Demand Context (AI-Decided)
 AI intelligently loads additional guides based on task:
-- Complex authoring → `workflow-guide-comprehensive.mdc` (+2,542 lines)
-- Syntax lookup → `workflow-reference-detailed.mdc` (+872 lines)
-- Platform operations & validation → `mcp-platform-tools.mdc` (+400 lines)
-- Execution environment & pitfalls → `workflow-python-sdk.mdc` (+500 lines)
+- Complex authoring → `workflow-guide-comprehensive.mdc` (~1,240 lines)
+- Syntax lookup → `workflow-reference-detailed.mdc` (~790 lines)
+- Platform operations & validation → `mcp-platform-tools.mdc` (~430 lines)
+- Execution environment & pitfalls → `workflow-python-sdk.mdc` (~410 lines)
 
 ## How to Use These Rules
 
@@ -184,53 +184,27 @@ You can explicitly reference rules using @-mentions:
 "@workflow-python-sdk what keyboard commands work in Linux containers?"
 ```
 
-## Workflow Approaches
+## Workflow Approach
 
-### Python SDK Approach (Primary)
-- Uses Python with `nen.workflow` SDK
+All workflows use the **Python SDK** approach:
+- Python with the `nen` SDK (`Agent`, `Computer`, `Secure`)
 - VLM-based automation with natural language descriptions
 - Direct computer control (mouse, keyboard)
 - Structured data extraction with JSON schemas
-- File: `workflow.py` with `handler(payload)` function
-
-**Documentation:** This directory's .mdc rules
-
-### FSM Approach (Alternative)
-- Uses JSON-based Finite State Machine definitions
-- State-based workflow with transitions
-- LLMState, ToolState, VerificationState, etc.
-- Files: `orchestrator.json` and `workflow.json`
-
-**Documentation:** See legacy `.cursorrules` file (being deprecated)
-
-## When to Use Which Approach
-
-Use **Python SDK** approach when:
-- Complex programmatic logic required
-- Need custom error handling and retry logic
-- Building reusable helper functions
-- Prefer imperative programming style
-- Need full Python ecosystem access
-
-Use **FSM** approach when:
-- Workflow is primarily sequential state transitions
-- Need visual workflow representation
-- Want declarative workflow definition
-- Building resumable workflows with checkpoints
-- Prefer configuration over code
+- File: `workflow.py` with `run(params: Params) -> Result` function
 
 ## Benefits of Modern Rule Structure
 
 This project uses modern `.mdc` rules with intelligent context management:
-- `workflow-core.mdc` (always-on, ~180 lines)
-- `workflow-creation-process.mdc` (always-on, ~200 lines)
-- `workflow-python-sdk.mdc` (on-demand, ~500 lines)
-- `workflow-guide-comprehensive.mdc` (on-demand, ~2542 lines)
-- `workflow-reference-detailed.mdc` (on-demand, ~872 lines)
-- `mcp-platform-tools.mdc` (on-demand, ~400 lines)
+- `workflow-core.mdc` (always-on, ~270 lines)
+- `workflow-creation-process.mdc` (always-on, ~420 lines)
+- `workflow-python-sdk.mdc` (on-demand, ~410 lines)
+- `workflow-guide-comprehensive.mdc` (on-demand, ~1,240 lines)
+- `workflow-reference-detailed.mdc` (on-demand, ~790 lines)
+- `mcp-platform-tools.mdc` (on-demand, ~430 lines)
 
 **Advantages:**
-- Focused baseline context (~380 lines) for workflow creation
+- Focused baseline context (~690 lines) for workflow creation
 - Systematic 4-step process (build → validate → deploy → run) always available
 - Built-in validation step prevents deployment errors
 - Intelligent loading of detailed guides based on task complexity

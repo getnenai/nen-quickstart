@@ -3,7 +3,7 @@ description: "Detailed SDK reference with complete function signatures, paramete
 alwaysApply: false
 ---
 
-# CUP Workflow Quick Reference
+# Nen Workflow Quick Reference
 
 Quick reference for `nen` SDK (`Agent`, `Computer`, `Secure`) and common patterns.
 

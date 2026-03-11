@@ -1,5 +1,5 @@
 ---
-name: cup-python-sdk
+name: python-sdk
 description: Reference documentation for the Nen Python SDK used to build desktop automation workflows. Use when writing new workflow.py files, or answering questions about Agent, Computer, agent.execute(), agent.verify(), agent.extract(), computer.type(), computer.press(), computer.mouse, computer.drive(), Drive, File, Secure[str], SecureParams, run(), Params, Result, Pydantic models, error handling, WorkflowError, RPCError, TimeoutError, try/except, raising errors, retry patterns, or error webhooks.
 ---
 

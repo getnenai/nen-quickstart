@@ -14,7 +14,7 @@ Create a `Computer` instance inside your `run()` function:
 def run(params: Params) -> Result:
     agent = Agent()
     computer = Computer()
-    # ... use computer.type/press/hotkey and computer.mouse
+    # ... use computer.type/press/hotkey/click_at/move/scroll
 ```
 
 ---
@@ -97,14 +97,16 @@ for f in drive.files():
 
 ---
 
-## computer.mouse
+## Mouse Methods
 
 > Use mouse methods when you have exact screen coordinates. Otherwise, prefer `agent.execute()` to locate and click elements visually.
+
+Mouse methods are called **directly on `computer`** — there is no `computer.mouse` sub-object.
 
 ### click_at()
 
 ```python
-computer.mouse.click_at(x: int, y: int, button: str = "left") -> None
+computer.click_at(x: int, y: int, button: str = "left") -> None
 ```
 
 Click at specific screen coordinates.
@@ -116,26 +118,26 @@ Click at specific screen coordinates.
 | `button`  | `str` | `"left"` | `"left"` or `"right"` |
 
 ```python
-computer.mouse.click_at(100, 200)                   # left click
-computer.mouse.click_at(100, 200, button="right")   # right click
+computer.click_at(100, 200)                   # left click
+computer.click_at(100, 200, button="right")   # right click
 ```
 
 ### move()
 
 ```python
-computer.mouse.move(x: int, y: int) -> None
+computer.move(x: int, y: int) -> None
 ```
 
 Move the cursor to a position without clicking.
 
 ```python
-computer.mouse.move(500, 300)
+computer.move(500, 300)
 ```
 
 ### scroll()
 
 ```python
-computer.mouse.scroll(direction: str = "down", amount: int = 3, x: int | None = None, y: int | None = None) -> None
+computer.scroll(direction: str = "down", amount: int = 3, *, x: int | None = None, y: int | None = None) -> None
 ```
 
 | Parameter   | Type          | Default  | Description            |
@@ -146,7 +148,7 @@ computer.mouse.scroll(direction: str = "down", amount: int = 3, x: int | None = 
 | `y`         | `int \| None` | `None`   | Scroll at Y coordinate |
 
 ```python
-computer.mouse.scroll()                         # scroll down 3 ticks
-computer.mouse.scroll("up", 5)                  # scroll up 5 ticks
-computer.mouse.scroll("down", 3, x=400, y=300) # scroll at position
+computer.scroll()                         # scroll down 3 ticks
+computer.scroll("up", 5)                  # scroll up 5 ticks
+computer.scroll("down", 3, x=400, y=300) # scroll at position
 ```

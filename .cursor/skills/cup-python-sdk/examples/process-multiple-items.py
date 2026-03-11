@@ -7,7 +7,7 @@ Demonstrates:
 - Collecting results into list[dict]
 """
 
-from nen import Agent, Computer
+from nen import Agent
 from pydantic import BaseModel, Field
 
 
@@ -21,7 +21,6 @@ class Result(BaseModel):
 
 def run(params: Params) -> Result:
     agent = Agent()
-    computer = Computer()
     results = []
 
     for provider in params.provider_names:

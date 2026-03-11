@@ -174,11 +174,11 @@ if not agent.verify("Is the submit button visible?"):
     raise RuntimeError("Submit button not found")
 
 # Click at specific coordinates
-computer.mouse.click_at(500, 400)
+computer.click_at(500, 400)
 
 # Move and click
-computer.mouse.move(300, 200)
-computer.mouse.click_at(300, 200)
+computer.move(300, 200)
+computer.click_at(300, 200)
 ```
 
 **When to use direct mouse control:**
@@ -309,7 +309,7 @@ from nen import Agent
 agent = Agent()
 ```
 
-#### agent.execute(description, max_iterations=10)
+#### agent.execute(instruction, max_iterations=10)
 Natural language action using vision language model.
 
 ```python
@@ -381,27 +381,27 @@ computer.hotkey("ctrl", "v")    # Paste
 computer.hotkey("shift", "Tab") # Reverse tab
 ```
 
-#### computer.mouse.click_at(x, y, button="left")
+#### computer.click_at(x, y, button="left")
 Click at specific coordinates.
 
 ```python
-computer.mouse.click_at(500, 300)
-computer.mouse.click_at(500, 300, button="right")
+computer.click_at(500, 300)
+computer.click_at(500, 300, button="right")
 ```
 
-#### computer.mouse.move(x, y)
+#### computer.move(x, y)
 Move mouse to coordinates.
 
 ```python
-computer.mouse.move(400, 200)
+computer.move(400, 200)
 ```
 
-#### computer.mouse.scroll(direction, amount, x, y)
+#### computer.scroll(direction="down", amount=3, *, x=None, y=None)
 Scroll the mouse wheel.
 
 ```python
-computer.mouse.scroll("down", 3)
-computer.mouse.scroll("up", 5)
+computer.scroll("down", 3)
+computer.scroll("up", 5)
 ```
 
 ## For Complete Details

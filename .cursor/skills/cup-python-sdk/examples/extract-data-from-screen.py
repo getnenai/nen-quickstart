@@ -6,7 +6,7 @@ Demonstrates:
 - Optional fields in Result (dict | None)
 """
 
-from nen import Agent, Computer
+from nen import Agent
 from pydantic import BaseModel, Field
 
 
@@ -21,7 +21,6 @@ class Result(BaseModel):
 
 def run(params: Params) -> Result:
     agent = Agent()
-    computer = Computer()
 
     # Navigate to patient profile
     agent.execute(f"Search for and open patient '{params.patient_name}'")

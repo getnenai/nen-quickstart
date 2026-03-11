@@ -1,6 +1,6 @@
 """Basic Web Navigation — navigate to a website and extract data."""
 
-from nen import Agent, Computer
+from nen import Agent
 from pydantic import BaseModel, Field
 
 
@@ -15,7 +15,6 @@ class Result(BaseModel):
 
 def run(params: Params) -> Result:
     agent = Agent()
-    computer = Computer()
 
     # Open browser
     agent.execute("Click the Chromium browser icon in the taskbar (the blue circular icon, second from left)")

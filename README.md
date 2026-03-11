@@ -113,7 +113,11 @@ Remote MCP tools are updated server-side automatically.
 
 ## Security
 
-The MCP server configuration uses a public URL endpoint. No credentials are stored in `mcp.json`.
+The `mcp.json` file contains your `x-api-key` — treat it as a secret:
+
+- **Do not commit `mcp.json` to version control.** Add `~/.cursor/mcp.json` to your global `.gitignore`, or ensure it is outside any repo.
+- **Rotate your API key** if you believe it has been exposed.
+- For team environments, consider using a secrets manager or environment variable injection rather than storing the key in plain text.
 
 ---
 

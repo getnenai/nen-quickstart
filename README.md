@@ -21,9 +21,9 @@ cd mcp-quickstart
 
 ### Step 2: Configure Cursor
 
-Click the link below to automatically install the NenAI Platform MCP Server:
+Click the link below to automatically install the Nen Platform MCP Server:
 
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en-US/install-mcp?name=NenAI%20Platform&config=eyJ1cmwiOiJodHRwczovL21jcC5nZXRuZW4uYWkvdjEiLCJoZWFkZXJzIjp7IngtYXBpLWtleSI6IllPVVJfTkVOQUlfQVBJX0tFWSJ9fQ%3D%3D)
+[![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en-US/install-mcp?name=Nen%20Platform&config=eyJ1cmwiOiJodHRwczovL21jcC5nZXRuZW4uYWkvdjEiLCJoZWFkZXJzIjp7IngtYXBpLWtleSI6IllPVVJfTkVOX0FQSV9LRVkifX0%3D)
 
 This will automatically add the server configuration to your `mcp.json` file.
 
@@ -35,12 +35,12 @@ If the automatic installation doesn't work:
 1. Within Cursor, open "Cursor Settings" (Cmd-Shift-J)
 2. Select "Tools & MCP" along the left bar
 3. Click on "New MCP Server"
-4. In `mcp.json`, add the "NenAI Platform" key under `mcpServers`:
+4. In `mcp.json`, add the "Nen Platform" key under `mcpServers`:
 
 ```json
 {
   "mcpServers": {
-    "NenAI Platform": {
+    "Nen Platform": {
       "url": "https://mcp.getnen.ai/v1"
     }
   }
@@ -53,7 +53,7 @@ If the automatic installation doesn't work:
 Ask the AI agent in Cursor:
 
 ```
-Show me the available NenAI Platform MCP tools
+Show me the available Nen Platform MCP tools
 ```
 
 ✅ You should see tools like nen_create_workflow, nen_validate, nen_run, nen_status, update_workflow, get_run_video, and get_run_logs!
@@ -109,7 +109,7 @@ Remote MCP tools are updated server-side automatically.
 
 ### Uninstallation
 
-1. Remove the `"NenAI Platform"` entry from `~/.cursor/mcp.json`
+1. Remove the `"Nen Platform"` entry from `~/.cursor/mcp.json`
 2. Restart Cursor
 
 ---
@@ -132,6 +132,6 @@ The MCP server configuration uses a public URL endpoint. No credentials are stor
 
 ## Getting Help
 
-Contact your NenAI customer engineer with:
+Contact your Nen customer engineer with:
 - Full error message
 - Contents of `~/.cursor/mcp.json` (redact any secrets)

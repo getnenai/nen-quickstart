@@ -12,11 +12,11 @@
    cat ~/.cursor/mcp.json
    ```
 
-2. Verify the NenAI Platform server entry is present with the correct URL:
+2. Verify the Nen Platform server entry is present with the correct URL:
    ```json
    {
      "mcpServers": {
-       "NenAI Platform": {
+       "Nen Platform": {
          "url": "https://mcp.getnen.ai/v1"
        }
      }
@@ -38,7 +38,7 @@
    ```bash
    python3 -m json.tool ~/.cursor/mcp.json >/dev/null && echo "OK"
    ```
-2. Try reinstalling using the deeplink: [Install NenAI Platform MCP Server](cursor://anysphere.cursor-deeplink/mcp/install?config=eyJOZW5BSSBQbGF0Zm9ybSI6eyJ1cmwiOiJodHRwczovL21jcC5nZXRuZW4uYWkvdjEifX0=)
+2. Try reinstalling using the deeplink: [Install Nen Platform MCP Server](cursor://anysphere.cursor-deeplink/mcp/install?config=eyJOZW4gUGxhdGZvcm0iOnsidXJsIjoiaHR0cHM6Ly9tY3AuZ2V0bmVuLmFpL3YxIn19)
 
 ---
 

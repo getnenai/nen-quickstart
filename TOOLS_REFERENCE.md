@@ -99,7 +99,7 @@ nen_create_workflow({
 
 ## nen_upload
 
-Upload workflow files to the NenAI platform.
+Upload workflow files to the Nen platform.
 
 ### Parameters
 
@@ -140,7 +140,7 @@ nen_upload({
 
 ## nen_run
 
-Trigger workflow execution on the NenAI platform.
+Trigger workflow execution on the Nen platform.
 
 ### Parameters
 
@@ -550,7 +550,7 @@ Uses: nen_run with same params
 - `README.md` - Overview, installation, and quick start
 
 ### Support
-Contact your NenAI customer engineer with:
+Contact your Nen customer engineer with:
 - Tool name and parameters used
 - Full error message
 - Expected vs actual behavior

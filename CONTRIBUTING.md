@@ -1,4 +1,4 @@
-# Contributing to NenAI MCP Quickstart
+# Contributing to Nen MCP Quickstart
 
 Thank you for your interest in contributing! This guide will help you create high-quality workflows and improve the quickstart repository.
 
@@ -384,4 +384,4 @@ Contributors will be recognized in:
 - Release notes for significant contributions
 - Special thanks in documentation for major improvements
 
-Thank you for helping make NenAI workflows better! 🚀
+Thank you for helping make Nen workflows better! 🚀

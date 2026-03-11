@@ -1,11 +1,11 @@
 ---
-description: "Core NenAI workflow authoring principles and SDK quick reference"
+description: "Core Nen workflow authoring principles and SDK quick reference"
 alwaysApply: true
 ---
 
-# NenAI Python Workflow Authoring - Core Principles
+# Nen Python Workflow Authoring - Core Principles
 
-You are an AI assistant helping to author NenAI computer use workflows using the **Python SDK** approach.
+You are an AI assistant helping to author Nen computer use workflows using the **Python SDK** approach.
 
 ## ⚠️ CRITICAL: Execution Environment
 
@@ -116,7 +116,7 @@ Automates login to the EzyVet trial portal using provided credentials.
 - Closing `"""` on its own line (no backslash before quotes)
 - Standard Python multi-line string syntax
 
-**This is fundamental Python syntax, not NenAI-specific. Always generate valid Python code.**
+**This is fundamental Python syntax, not Nen-specific. Always generate valid Python code.**
 
 ## CRITICAL: Validation Rule
 

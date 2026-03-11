@@ -1,24 +1,24 @@
 ---
-description: "NenAI MCP tool usage for workflow deployment, execution, debugging, and platform management"
+description: "Nen MCP tool usage for workflow deployment, execution, debugging, and platform management"
 alwaysApply: false
 ---
 
-# NenAI MCP Tool Usage Guidelines
+# Nen MCP Tool Usage Guidelines
 
-This guide helps the AI assistant understand **when** and **how** to use NenAI Platform MCP tools during workflow authoring.
+This guide helps the AI assistant understand **when** and **how** to use Nen Platform MCP tools during workflow authoring.
 
 ## ⚠️ PREREQUISITE: API Key Required
 
-**All NenAI MCP tools require a valid API key to function.** Without it, every MCP tool call (`nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, etc.) will fail with an authentication error.
+**All Nen MCP tools require a valid API key to function.** Without it, every MCP tool call (`nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, etc.) will fail with an authentication error.
 
 **If a user tries to use any MCP tool and it fails, check whether they have set up their API key first.**
 
 ### How to set up the API key:
-1. Obtain your NenAI API key from the NenAI platform/dashboard
+1. Obtain your Nen API key from the Nen platform/dashboard
 2. Open `~/.cursor/mcp.json` and add the following entry:
 
 ```json
-"NenAI Platform": {
+"Nen Platform": {
   "url": "https://mcp.getnen.ai/v1",
   "headers": {
     "x-api-key": "YOUR_API_KEY_HERE"
@@ -34,20 +34,20 @@ This guide helps the AI assistant understand **when** and **how** to use NenAI P
 
 **Project Standard:** This project uses **Python SDK workflows** (`nen.workflow`), as documented in `.cursorrules`.
 
-**NenAI MCP Default:** The `nen_create_workflow` tool generates **FSM JSON workflows** by default.
+**Nen MCP Default:** The `nen_create_workflow` tool generates **FSM JSON workflows** by default.
 
 **Implication:** When using MCP tools, be aware of this distinction and convert or adapt as needed.
   
 ---
 
-## Available NenAI MCP Tools
+## Available Nen MCP Tools
 
 ### Workflow Creation & Management
 - `nen_create_workflow` - Generate FSM JSON workflow files
 - `nen_validate` - Validate Python workflow structure before deployment
 - `update_workflow` - Update/publish workflow files (supports both JSON and Python)
 - `nen_list_workflows` - List all workflows in deployment
-- `nen_upload` - Upload workflows to NenAI platform
+- `nen_upload` - Upload workflows to Nen platform
 
 ### Workflow Execution & Monitoring
 - `nen_run` - Execute a workflow with parameters
@@ -55,11 +55,11 @@ This guide helps the AI assistant understand **when** and **how** to use NenAI P
 - `get_run_logs` - Retrieve execution logs for debugging
 - `get_run_video` - Get video recording of workflow execution
 - `nen_artifacts` - Download all artifacts (video, logs) via rsync
-- `nen_status` - Check NenAI API/service status
+- `nen_status` - Check Nen API/service status
 
 ---
 
-## When to Use NenAI MCP Tools
+## When to Use Nen MCP Tools
 
 ### ✅ ALWAYS Use MCP Tools For:
 
@@ -70,7 +70,7 @@ User: "Run my ezyvet-login workflow"
 AI Action: Use nen_run() to execute the workflow
 ```
 
-**Why:** Direct API access to NenAI platform for execution.
+**Why:** Direct API access to Nen platform for execution.
 
 **Tools:** `nen_run`, `nen_list_runs`
 
@@ -112,7 +112,7 @@ User: "What workflows do I have?"
 AI Action: Use nen_list_workflows() to list all available workflows
 ```
 
-**Why:** Query the NenAI platform for deployed workflows.
+**Why:** Query the Nen platform for deployed workflows.
 
 **Tools:** `nen_list_workflows`, `nen_status`
 
@@ -277,7 +277,7 @@ User: "Create a workflow to login to GitHub"
 
 AI Response:
 "I'll create a Python SDK workflow (the standard for this project).
-If you prefer FSM JSON format, let me know and I can use the NenAI 
+If you prefer FSM JSON format, let me know and I can use the Nen 
 MCP create_workflow tool instead."
 
 [Proceeds to author Python code using nen.workflow SDK]
@@ -339,7 +339,7 @@ Example: When debugging, read local code AND fetch platform logs:
 ### 5. **Be Explicit About Tool Usage**
 When using MCP tools, tell the user:
 ```
-"I'll use the NenAI MCP to execute your workflow..."
+"I'll use the Nen MCP to execute your workflow..."
 "Let me fetch the execution logs from the platform..."
 ```
 
@@ -366,7 +366,7 @@ If MCP tools fail (auth issues, network errors):
 
 ### `update_workflow`
 - **Accepts:** Both JSON and Python files
-- **Use for:** Deploying local changes to NenAI platform
+- **Use for:** Deploying local changes to Nen platform
 - **Note:** Requires workflow ID (use `nen_list_workflows` to find)
 
 ### `get_run_logs`

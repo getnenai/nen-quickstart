@@ -1,9 +1,9 @@
 ---
-description: "NenAI Python SDK reference for workflow authoring - execution environment, keyboard/mouse control, and common patterns"
+description: "Nen Python SDK reference for workflow authoring - execution environment, keyboard/mouse control, and common patterns"
 alwaysApply: false
 ---
 
-# NenAI Python SDK - Execution Environment & Best Practices
+# Nen Python SDK - Execution Environment & Best Practices
 
 ## Execution Environment
 

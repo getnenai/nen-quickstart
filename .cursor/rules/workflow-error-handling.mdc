@@ -1,5 +1,5 @@
 ---
-description: "Error handling conventions for NenAI workflow.py files — always raise exceptions for failures"
+description: "Error handling conventions for Nen workflow.py files — always raise exceptions for failures"
 globs: workflows/**/*.py
 alwaysApply: false
 ---

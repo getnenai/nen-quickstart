@@ -1,22 +1,22 @@
 ---
-description: "Workflow creation process: build, deploy, and run workflows using NenAI platform"
+description: "Workflow creation process: build, deploy, and run workflows using Nen platform"
 alwaysApply: true
 ---
 
-# NenAI Workflow Creation Process
+# Nen Workflow Creation Process
 
 When the user wants to create a new workflow, follow this systematic process:
 
 ## ⚠️ PREREQUISITE: API Key Required
 
-**All NenAI MCP tools require a valid API key.** Without it, `nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, and every other MCP tool will fail.
+**All Nen MCP tools require a valid API key.** Without it, `nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, and every other MCP tool will fail.
 
 **Before starting any workflow creation or deployment, confirm the user has their API key configured.**
 
-The user's `~/.cursor/mcp.json` must include the NenAI Platform entry with their API key:
+The user's `~/.cursor/mcp.json` must include the Nen Platform entry with their API key:
 
 ```json
-"NenAI Platform": {
+"Nen Platform": {
   "url": "https://mcp.getnen.ai/v1",
   "headers": {
     "x-api-key": "YOUR_API_KEY_HERE"
@@ -106,7 +106,7 @@ Before validating and deploying your workflow, verify these common issues:
 
 ## Step 2: Deploy the Workflow
 
-Deploy to NenAI platform using MCP tools:
+Deploy to Nen platform using MCP tools:
 
 1. **Upload/deploy the workflow:**
    
@@ -323,7 +323,7 @@ Automates login to the EzyVet trial portal using provided credentials.
 """
 ```
 
-**This is fundamental Python syntax, not NenAI-specific. Always generate valid Python code.**
+**This is fundamental Python syntax, not Nen-specific. Always generate valid Python code.**
 
 ---
 

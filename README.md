@@ -59,7 +59,7 @@ Ask the AI agent in Cursor:
 Show me the available Nen Platform MCP tools
 ```
 
-✅ You should see tools like nen_create_workflow, nen_validate, nen_run, nen_status, update_workflow, get_run_video, and get_run_logs!
+✅ You should see tools like nen_run, nen_status, nen_update_workflow, nen_list_workflows, nen_list_runs, and nen_get_run_logs!
 
 ---
 

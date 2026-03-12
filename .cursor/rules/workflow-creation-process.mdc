@@ -76,6 +76,15 @@ Do not ask if:
 - You're iterating on an existing workflow (use what's already established)
 - A question has already been answered earlier in the conversation
 
+### Build naive first, iterate later
+
+**Start with the simplest possible workflow that accomplishes the core task. Do NOT front-load validations, error handling, or edge case coverage.**
+
+- Write the happy path only — no extensive `agent.verify()` checks, no defensive error handling beyond the bare minimum
+- Keep the workflow short and readable
+- Add validations and robustness only in later iterations, based on what actually fails during runs
+- The goal of the first run is to see the workflow execute end-to-end, not to handle every edge case
+
 Once you have enough to proceed, move to Step 1.
 
 ---

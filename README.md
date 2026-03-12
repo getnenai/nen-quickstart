@@ -16,16 +16,8 @@ Build computer use automations using natural language in Cursor. Author, test, a
 
 ```bash
 git clone https://github.com/getnen/nen-quickstart.git
-cd nen-quickstart
-```
-
-Then open the folder in Cursor (`File → Open Folder`), or if you have the `cursor` shell command installed:
-
-```bash
 cursor nen-quickstart
 ```
-
-> To install the `cursor` shell command: open Cursor, open the Command Palette (`Cmd+Shift+P`), and run **"Install 'cursor' command in PATH"**.
 
 ### Step 2: Configure Cursor
 

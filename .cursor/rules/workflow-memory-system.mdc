@@ -1,0 +1,129 @@
+---
+description: "Workflow memory system: how to read, write, and promote knowledge captured from real runs"
+alwaysApply: true
+---
+
+# Workflow Memory System
+
+Knowledge captured from real workflow runs lives in three places. Each piece of knowledge has exactly one home — never duplicate across locations.
+
+## The Three Stores
+
+| Store | Location | Scope | Owner |
+|---|---|---|---|
+| Workflow memory | `workflows/my_workflows/[name]/MEMORY.md` | This workflow only | Workflow-specific quirks that don't generalize |
+| App skill | `.cursor/skills/apps/[app-name]/SKILL.md` | Any workflow using this app | Site/app UI, navigation, protections, layout quirks |
+| Failure patterns | `workflow-failure-patterns.mdc` | Any workflow anywhere | Deployment mechanics, SDK bugs, VLM behavioral patterns |
+
+---
+
+## Reading Memory (Before Building)
+
+Before writing any workflow code:
+
+1. Check for `MEMORY.md` in the workflow's directory — read it if it exists
+2. App skills in `.cursor/skills/` are surfaced automatically by Cursor's Skills system — no need to look them up manually
+3. `workflow-failure-patterns.mdc` is always injected — review it before writing any verification or auth logic
+
+---
+
+## Writing Memory (After Diagnosis)
+
+Write memory **immediately after `get_run_logs()` reveals the root cause** — in the same response as the fix, before the next `nen_run()`. Do not wait for confirmation that the fix works.
+
+### Step 1: Determine the correct scope
+
+Answer these two questions for **every entry** before writing:
+
+**1. "Does this apply to any workflow targeting this same app/site?"**
+- If YES → app skill, not MEMORY.md
+- Test: "Would a completely different workflow hitting this same site encounter this issue?"
+- Always app-level: site-wide protections (Cloudflare, login walls), UI layout quirks, navigation patterns, search/form behavior
+
+**2. "Does this apply to any workflow, regardless of app?"**
+- If YES → `workflow-failure-patterns.mdc` (CRITICAL/HIGH only)
+- Always global: deployment mechanics, SDK usage bugs, VLM behavioral patterns, upload/encoding issues
+
+**Only after ruling out both broader scopes should you write to MEMORY.md.**
+
+### Step 2: Write the entry
+
+⚠️ **Every new entry MUST end with `[unconfirmed]` at write time — no exceptions.** Remove it only after the next run's logs confirm the fix worked.
+
+**MEMORY.md format:**
+```markdown
+### [Short name] — CRITICAL|HIGH|MEDIUM|LOW
+**Problem:** [What goes wrong]
+**Incorrect:** [The pattern that fails]
+**Fix:** [What to do instead] [unconfirmed]
+```
+
+**App skill quirk format** — new entries in the Known Quirks section of `.cursor/skills/apps/[app-name]/SKILL.md`:
+```markdown
+### [Short name] — CRITICAL|HIGH|MEDIUM|LOW
+**Problem:** [What goes wrong]
+**Incorrect:** [The pattern that fails]
+**Fix:** [What to do instead] [unconfirmed]
+```
+
+**App skill file structure** — when creating a new skill file:
+```markdown
+---
+name: [app-name]
+description: >-
+  Knowledge of [App]'s UI, login flow, navigation, and known quirks for automation.
+  Use when building workflows that interact with [App] — including [list key trigger scenarios].
+---
+
+# [App] — App Knowledge
+
+## Login Flow
+[How login works, what dialogs appear, what to check]
+
+## Key Navigation
+[How to reach key screens/features]
+
+## Known Quirks
+[Timing issues, unexpected dialogs, fragile patterns]
+```
+
+Rules for app skills:
+- `description` must name the app AND list trigger scenarios (WHAT + WHEN, third person)
+- Stay under 500 lines — use a `reference.md` for detailed breakdowns
+- Add sections only for things the AI wouldn't already know about the app
+
+**workflow-failure-patterns.mdc format:**
+```markdown
+## [CATEGORY]
+
+### [Short name] — CRITICAL|HIGH
+**Problem:** [What goes wrong]
+**Incorrect:** [Pattern that fails]
+**Fix:** [What to do instead] [unconfirmed]
+```
+
+### Step 3: Confidence model
+
+- **At write time (fix not yet run):** always tag `[unconfirmed]` — applies to MEMORY.md, app skills, and workflow-failure-patterns.mdc equally
+- **After confirming the fix worked** (reviewed logs of the next successful run): remove `[unconfirmed]`
+
+---
+
+## Limits
+
+- MEMORY.md: max 10 entries — update in place, never append
+- workflow-failure-patterns.mdc: max 20 entries — CRITICAL/HIGH only
+- App skills: max 500 lines per file
+
+---
+
+## When to Split an App Skill
+
+Split when:
+- You're building a workflow for app B and reaching into app A's skill for knowledge
+- The same pattern appears in two different app skills
+
+How to split:
+1. Create a broader skill (e.g. `google-auth`) with the shared knowledge
+2. Remove the shared section from the original skill
+3. Add a one-line reference: `"For Google login flow, see the google-auth skill"`

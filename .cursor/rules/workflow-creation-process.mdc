@@ -49,12 +49,7 @@ If the user hasn't done this yet, stop and guide them through setup before proce
 
 ## Step 0: Load Memory Before Building
 
-Before writing any workflow code:
-
-1. **If a `MEMORY.md` exists for this workflow**, read it — it contains known quirks specific to this workflow discovered from past runs
-2. **If building a workflow that targets the same sites or patterns as an existing workflow**, read that workflow's `MEMORY.md` too
-3. **If a `.cursor/skills/apps/[app-name]/SKILL.md` exists for the target app**, read it — it contains how that app works and quirks discovered from real runs. Check `.cursor/skills/apps/` for available app skills.
-4. **`workflow-failure-patterns.mdc` is always injected** — review its CRITICAL and HIGH entries before writing any verification or auth logic
+Before writing any workflow code, check for a `MEMORY.md` in the workflow's directory and read it if it exists. App skills in `.cursor/skills/` are surfaced automatically by Cursor — no need to look them up manually.
 
 ---
 
@@ -279,73 +274,9 @@ After the user observes the workflow execution, iterate based on their feedback:
    - User decides when the workflow meets their needs
    - **Every iteration MUST end with STOP after `nen_run()`**
 
-6. **Write to Memory after every fix:**
+6. **Write to Memory immediately after diagnosis — before deploying the fix:**
 
-   After identifying the root cause from logs and fixing the workflow, capture the lesson:
-
-   **Scope decision — ask: "Would this help someone building a *different* workflow?"**
-
-   | Scope | Action |
-   |---|---|
-   | This workflow only | Update (not append to) `MEMORY.md` using the format below. Max 10 entries. |
-   | Any workflow using this app | Add to `.cursor/skills/apps/[app-name]/SKILL.md`, remove from `MEMORY.md`. Create skill if it doesn't exist yet (see template below). |
-   | Any workflow anywhere (CRITICAL/HIGH only) | Add to `workflow-failure-patterns.mdc`, remove from `MEMORY.md`. Max 20 entries in that file. |
-
-   **MEMORY.md format** — use this exact structure for every entry:
-
-   ```markdown
-   ### [Short name] — CRITICAL|HIGH|MEDIUM|LOW
-   **Problem:** [What goes wrong]
-   **Incorrect:** [The pattern that fails]
-   **Fix:** [What to do instead]
-   ```
-
-   New file header (when creating MEMORY.md for the first time):
-
-   ```markdown
-   # Memory — [workflow-name]
-   <!-- Max 10 entries. Update in place, do not append.
-        Promote cross-workflow patterns to workflow-failure-patterns.mdc or app skills, remove here. -->
-   ```
-
-   ---
-
-   **New app skill template** — all skills live inside the repo at `.cursor/skills/apps/[app-name]/SKILL.md`.
-   Do NOT reference personal or global Cursor skills — everything must be self-contained in the repo.
-
-   ```
-   ---
-   name: [app-name]
-   description: >-
-     Knowledge of [App]'s UI, login flow, navigation, and known quirks for automation.
-     Use when building workflows that interact with [App] — including [list key trigger scenarios].
-   ---
-
-   # [App] — App Knowledge
-
-   ## Login Flow
-   [How login works, what dialogs appear, what to check]
-
-   ## Key Navigation
-   [How to reach key screens/features]
-
-   ## Known Quirks
-   [Timing issues, unexpected dialogs, fragile patterns]
-   ```
-
-   Rules for app skills:
-   - `description` must name the app AND list trigger scenarios (WHAT + WHEN, third person)
-   - `SKILL.md` must stay under 500 lines — use a `reference.md` for detailed module breakdowns
-   - Add sections only for things the AI wouldn't already know about the app
-
-   **When to split an app skill:**
-   - You are building a workflow for app B and reaching into app A's skill for knowledge (e.g., building a Gmail workflow but login/2FA logic lives in `google-sheets`)
-   - The same pattern appears in two different app skills
-
-   How to split:
-   1. Create a new broader skill (e.g., `google-auth`) with the shared knowledge
-   2. Remove the shared section from the original skill
-   3. Add a one-line reference in the original skill: `"For Google login flow, see the google-auth skill"`
+   As soon as `get_run_logs()` reveals the root cause, capture the lesson in the same response as the fix. Follow `workflow-memory-system.mdc` for scope decision, format, and confidence model.
 
 ## Example Full Flow
 

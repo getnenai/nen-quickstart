@@ -15,13 +15,9 @@ Patterns promoted from workflow `MEMORY.md` files after being observed in real r
 
 ---
 
-<!-- No entries yet. Patterns are added here when promoted from MEMORY.md files. -->
+## DEPLOYMENT
 
-<!-- Entry format:
-## [CATEGORY]
-
-### [Short name] — CRITICAL|HIGH
-**Problem:** [What goes wrong]
-**Incorrect:** [Pattern that fails]
-**Fix:** [What to do instead]
--->
+### Workflow content corrupted by manual JSON escaping — HIGH
+**Problem:** When uploading workflow content by manually constructing an escaped JSON string (instead of reading the file), Python syntax gets corrupted — e.g. `\"\"\"` becomes broken docstrings — causing `SyntaxError: unexpected character after line continuation character` on the first line.
+**Incorrect:** Passing a manually escaped string literal as the `content` field in `nen_update_workflow`.
+**Fix:** Always read the local `workflow.py` file with the Read tool first, then pass its content directly to `nen_update_workflow`. Never construct the content string by hand.

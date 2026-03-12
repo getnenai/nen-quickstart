@@ -222,23 +222,23 @@ return Result.model_validate(data)
 
 2. **Use `computer.type()`, `computer.press()`, and `computer.hotkey()`** for keyboard input — `computer.hotkey(*keys)` accepts modifier combinations (e.g. `computer.hotkey("ctrl", "a")`)
 
-4. **Check failure BEFORE success** - In verification logic, check for error indicators first, then success indicators
+3. **Check failure BEFORE success** - In verification logic, check for error indicators first, then success indicators
 
-5. **Be specific in verifications** - "Is there an 'Invalid email' error?" not "Did it work?"
+4. **Be specific in verifications** - "Is there an 'Invalid email' error?" not "Did it work?"
 
-6. **Be specific in agent.execute() descriptions** - "Click the blue 'Submit' button in the bottom right" not "Click submit"
+5. **Be specific in agent.execute() descriptions** - "Click the blue 'Submit' button in the bottom right" not "Click submit"
 
-7. **Verify before extracting** - Always check UI state before data extraction
+6. **Verify before extracting** - Always check UI state before data extraction
 
-8. **`Result` models actual data, not a success/failure envelope** — define fields for the data being extracted (e.g. `customer_id: str`, `instructions: str`). Use `Field` validators to enforce data quality. Raise exceptions for all failures — do not add `success: bool` or `error: str | None` to `Result`.
+7. **`Result` models actual data, not a success/failure envelope** — define fields for the data being extracted (e.g. `customer_id: str`, `instructions: str`). Use `Field` validators to enforce data quality. Raise exceptions for all failures — do not add `success: bool` or `error: str | None` to `Result`.
 
-9. **Use `Result.model_json_schema()` with `agent.extract()`** — pass it directly so extraction schema stays in sync with the return type. Return with `Result.model_validate(data)`.
+8. **Use `Result.model_json_schema()` with `agent.extract()`** — pass it directly so extraction schema stays in sync with the return type. Return with `Result.model_validate(data)`.
 
-10. **Use Field validation** - `Field(default="...", min_length=1, ge=0)` for input validation
+9. **Use Field validation** - `Field(default="...", min_length=1, ge=0)` for input validation
 
-11. **Don't log sensitive data** - Redact passwords, tokens, and credentials
+10. **Don't log sensitive data** - Redact passwords, tokens, and credentials
 
-12. **Raise for all failures** — browser won't open, site unreachable, login rejected, extraction empty, page not found → always `raise RuntimeError("...")` or `raise ValueError("...")`
+11. **Raise for all failures** — browser won't open, site unreachable, login rejected, extraction empty, page not found → always `raise RuntimeError("...")` or `raise ValueError("...")`
 
 12. **SecureParams fields never have defaults** - `Secure[str]` fields must NOT use `default=` in `Field()`. The platform injects secrets at runtime. Use `Field(min_length=1, description="...")` only.
 

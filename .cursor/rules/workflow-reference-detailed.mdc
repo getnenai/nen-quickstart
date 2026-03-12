@@ -271,7 +271,7 @@ computer.hotkey("ctrl", "a")           # Select all
 computer.hotkey("ctrl", "shift", "s")  # Save As
 ```
 
-**keyboard.type() parameters:**
+**computer.type() parameters:**
 - `text` (str): Text to type
 - `interval` (float): Seconds between keystrokes (default: 0.02)
 

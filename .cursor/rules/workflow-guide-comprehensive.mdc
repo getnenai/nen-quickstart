@@ -799,7 +799,7 @@ nen_get_run_logs(messageId="...")
 | "It should have logged in" | `nen_get_run_logs()` | Look for authentication attempts, check verification results |
 | "The extraction failed" | `nen_get_run_logs()` | Find extraction calls, see what data was returned or why it failed |
 | "It got stuck" | `nen_get_run_logs()` | Check where iteration stopped, look for max_iterations reached |
-| "It typed the wrong thing" | `nen_get_run_logs()` | Search for keyboard.type() calls, verify what was actually typed |
+| "It typed the wrong thing" | `nen_get_run_logs()` | Search for computer.type() calls, verify what was actually typed |
 
 ---
 

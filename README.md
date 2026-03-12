@@ -103,11 +103,9 @@ Remote MCP tools are updated server-side automatically.
 
 ## Documentation
 
-- [WORKFLOW_VALIDATION_GUIDE.md](WORKFLOW_VALIDATION_GUIDE.md) - Workflow validation guide
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Detailed troubleshooting guide
 - [TOOLS_REFERENCE.md](TOOLS_REFERENCE.md) - Complete MCP tools reference
 - [.cursor/rules/](.cursor/rules/) - Workflow authoring guides and rules
-- [workflows/samples/](workflows/samples/) - Example workflows
 
 ---
 

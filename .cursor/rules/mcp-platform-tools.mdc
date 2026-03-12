@@ -122,9 +122,9 @@ AI Action: Use nen_update_workflow() to deploy
 
 ---
 
-### ⚠️ USE WITH CAUTION For:
+### ❌ DO NOT Use MCP Tools For:
 
-#### 6. **Generating New Workflows**
+#### 1. **Generating New Workflows**
 ```
 User: "Create a workflow to scrape product data"
 AI Action: Author workflow.py locally using SDK primitives (Python SDK is the project standard)
@@ -133,14 +133,14 @@ AI Action: Author workflow.py locally using SDK primitives (Python SDK is the pr
 **Why:** There is no MCP tool to auto-generate workflows. Always author Python SDK workflows locally in the editor.
 
 **Recommended Approach:**
-1. Author `workflow.py` locally using `nen.workflow` SDK primitives
+1. Author `workflow.py` locally using `nen` SDK primitives
 2. Deploy with `nen_update_workflow()`
+
+**Use Instead:** Manual authoring with `Write` / `StrReplace` tools
 
 ---
 
-### ❌ DO NOT Use MCP Tools For:
-
-#### 1. **Editing Python Workflow Code**
+#### 3. **Editing Python Workflow Code**
 ```
 User: "Add a validation step to my workflow.py"
 AI Action: Use StrReplace tool directly
@@ -152,7 +152,7 @@ AI Action: Use StrReplace tool directly
 
 ---
 
-#### 2. **Reading Existing Workflow Files**
+#### 4. **Reading Existing Workflow Files**
 ```
 User: "Show me my ezyvet-login workflow"
 AI Action: Use Read tool ❌ NOT nen_list_workflows
@@ -164,7 +164,7 @@ AI Action: Use Read tool ❌ NOT nen_list_workflows
 
 ---
 
-#### 3. **Python Syntax Checking**
+#### 5. **Python Syntax Checking**
 ```
 User: "Check if my Python has syntax errors"
 AI Action: Use ReadLints tool
@@ -178,7 +178,7 @@ AI Action: Use ReadLints tool
 
 ---
 
-#### 4. **Adding Documentation/Comments**
+#### 6. **Adding Documentation/Comments**
 ```
 User: "Add comments to explain this workflow"
 AI Action: Use StrReplace ❌ NOT update_workflow

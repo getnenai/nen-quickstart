@@ -22,3 +22,6 @@ artifacts/
 
 # Private workflows - DO NOT push to public repo
 workflows/
+
+# App skills — runtime-learned from real runs, not part of repo template
+.cursor/skills/apps/

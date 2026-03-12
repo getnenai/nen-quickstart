@@ -1,0 +1,27 @@
+---
+description: "Empirical failure patterns discovered from real workflow runs. CRITICAL and HIGH only. Max 20 entries."
+alwaysApply: true
+---
+
+# Workflow Failure Patterns
+
+Patterns promoted from workflow `MEMORY.md` files after being observed in real runs.
+
+**Rules for this file:**
+- CRITICAL and HIGH impact entries only — MEDIUM/LOW stay in MEMORY.md or app skills
+- Max 20 entries total — when full, remove or merge before adding a new one
+- Do NOT duplicate patterns already in `workflow-creation-process.mdc` Common Pitfalls
+- Every entry must come from a real observed failure, not theoretical knowledge
+
+---
+
+<!-- No entries yet. Patterns are added here when promoted from MEMORY.md files. -->
+
+<!-- Entry format:
+## [CATEGORY]
+
+### [Short name] — CRITICAL|HIGH
+**Problem:** [What goes wrong]
+**Incorrect:** [Pattern that fails]
+**Fix:** [What to do instead]
+-->

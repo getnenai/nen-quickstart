@@ -19,7 +19,7 @@ Core Nen workflow authoring principles loaded in every session.
 
 **Contains:**
 - Basic workflow structure and handler template
-- SDK primitives quick reference (agent, validate, extract, mouse, keyboard)
+- SDK primitives quick reference (agent, verify, extract, mouse, keyboard)
 - Common patterns (browser automation, login, data extraction)
 - Best practices checklist
 - References to detailed guides
@@ -207,8 +207,3 @@ All rules in `.cursor/rules/`:
 ```
 
 ---
-
-## Additional Documentation
-
-For detailed validation guidance, see:
-- [WORKFLOW_VALIDATION_GUIDE.md](../../WORKFLOW_VALIDATION_GUIDE.md) - Complete validation guide

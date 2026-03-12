@@ -15,8 +15,6 @@ Quick reference for all Nen Platform MCP tools available via the remote MCP serv
 | `nen_list_workflows` | List all deployed workflows |
 | `nen_get_run_logs` | Retrieve full log content for a run |
 
-> **Note:** `nen_create_workflow`, `nen_upload`, `update_workflow`, and `get_run_video` no longer exist. Use `nen_update_workflow` for all workflow creation and deployment.
-
 ---
 
 ## nen_update_workflow

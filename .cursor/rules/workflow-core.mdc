@@ -118,20 +118,6 @@ Automates login to the EzyVet trial portal using provided credentials.
 
 **This is fundamental Python syntax, not Nen-specific. Always generate valid Python code.**
 
-## CRITICAL: Validation Rule
-
-**After ANY change to workflow.py, you MUST call `nen_validate()`:**
-
-```python
-# Read the workflow file
-workflow_content = Read("workflows/my_workflows/[workflow-name]/workflow.py")
-
-# Validate it
-nen_validate(content=workflow_content, filename="workflow.py")
-```
-
-This catches errors before deployment and ensures the workflow will execute correctly.
-
 ## SDK Primitives Quick Reference
 
 ### Agent
@@ -234,9 +220,7 @@ return Result.model_validate(data)
 
 1. **Use Pydantic models** - Define `Params` and `Result` classes with type hints and validation
 
-2. **Validate before deploying** - Always run `nen_validate()` tool before publishing workflows
-
-3. **Use `computer.type()`, `computer.press()`, and `computer.hotkey()`** for keyboard input — `computer.hotkey(*keys)` accepts modifier combinations (e.g. `computer.hotkey("ctrl", "a")`)
+2. **Use `computer.type()`, `computer.press()`, and `computer.hotkey()`** for keyboard input — `computer.hotkey(*keys)` accepts modifier combinations (e.g. `computer.hotkey("ctrl", "a")`)
 
 4. **Check failure BEFORE success** - In verification logic, check for error indicators first, then success indicators
 

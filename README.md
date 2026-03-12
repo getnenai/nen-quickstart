@@ -15,8 +15,8 @@ Build computer use automations using natural language in Cursor. Author, test, a
 ### Step 1: Clone the repository
 
 ```bash
-git clone https://github.com/getnen/mcp-quickstart.git
-cd mcp-quickstart
+git clone https://github.com/getnen/nen-quickstart.git
+cursor nen-quickstart
 ```
 
 ### Step 2: Configure Cursor
@@ -41,7 +41,10 @@ If the automatic installation doesn't work:
 {
   "mcpServers": {
     "Nen Platform": {
-      "url": "https://mcp.getnen.ai/v1"
+      "url": "https://mcp.getnen.ai/v1",
+      "headers": {
+        "x-api-key": "YOUR_API_KEY_HERE"
+      }
     }
   }
 }
@@ -56,7 +59,7 @@ Ask the AI agent in Cursor:
 Show me the available Nen Platform MCP tools
 ```
 
-✅ You should see tools like nen_create_workflow, nen_validate, nen_run, nen_status, update_workflow, get_run_video, and get_run_logs!
+✅ You should see tools like nen_run, nen_status, nen_update_workflow, nen_list_workflows, nen_list_runs, and nen_get_run_logs!
 
 ---
 
@@ -67,26 +70,10 @@ Show me the available Nen Platform MCP tools
 Ask your AI agent to create a workflow:
 
 ```
-Create a workflow that navigates to google.com and takes a screenshot
+Create a workflow that goes to YCombinator and tells me what the 3rd article is
 ```
 
-The AI will create a workflow, validate it using `nen_validate`, then upload and run it using the available MCP tools.
-
-### Validating Workflows
-
-Before deploying any workflow, validate its structure:
-
-```
-Validate my workflow in workflows/my_workflows/example/workflow.py
-```
-
-The AI will use `nen_validate` to check:
-- Pydantic Input/Output models
-- Correct function signature (`run(input: Input) -> Output`)
-- Required imports and type hints
-- Proper error handling
-
-**Best Practice:** Always validate workflows before deployment to catch errors early!
+The AI will create a workflow and run it using the available MCP tools.
 
 ---
 
@@ -126,7 +113,11 @@ Remote MCP tools are updated server-side automatically.
 
 ## Security
 
-The MCP server configuration uses a public URL endpoint. No credentials are stored in `mcp.json`.
+The `mcp.json` file contains your `x-api-key` — treat it as a secret:
+
+- **Do not commit `mcp.json` to version control.** Add `~/.cursor/mcp.json` to your global `.gitignore`, or ensure it is outside any repo.
+- **Rotate your API key** if you believe it has been exposed.
+- For team environments, consider using a secrets manager or environment variable injection rather than storing the key in plain text.
 
 ---
 

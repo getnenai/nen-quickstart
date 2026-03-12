@@ -772,16 +772,16 @@ def run(params: Params) -> Result:
     return Result(data=data)
 ```
 
-### Debugging Workflows with `get_run_logs()`
+### Debugging Workflows with `nen_get_run_logs()`
 
 **🔍 CRITICAL: When Users Report Issues**
 
-When a user reports that a workflow didn't work as expected, **ALWAYS use `get_run_logs()`** to see what actually happened:
+When a user reports that a workflow didn't work as expected, **ALWAYS use `nen_get_run_logs()`** to see what actually happened:
 
 ```python
 # User says: "It failed" or "It should have clicked the button"
 # AI IMMEDIATELY calls:
-get_run_logs(messageId="...")
+nen_get_run_logs(messageId="...")
 
 # Then analyzes the logs to:
 # 1. Find where the workflow actually failed
@@ -795,11 +795,11 @@ get_run_logs(messageId="...")
 
 | User Says | What to Do | What to Look for in Logs |
 |-----------|------------|--------------------------|
-| "It didn't click the button" | `get_run_logs()` | Search for button-related actions, check if element was found |
-| "It should have logged in" | `get_run_logs()` | Look for authentication attempts, check verification results |
-| "The extraction failed" | `get_run_logs()` | Find extraction calls, see what data was returned or why it failed |
-| "It got stuck" | `get_run_logs()` | Check where iteration stopped, look for max_iterations reached |
-| "It typed the wrong thing" | `get_run_logs()` | Search for keyboard.type() calls, verify what was actually typed |
+| "It didn't click the button" | `nen_get_run_logs()` | Search for button-related actions, check if element was found |
+| "It should have logged in" | `nen_get_run_logs()` | Look for authentication attempts, check verification results |
+| "The extraction failed" | `nen_get_run_logs()` | Find extraction calls, see what data was returned or why it failed |
+| "It got stuck" | `nen_get_run_logs()` | Check where iteration stopped, look for max_iterations reached |
+| "It typed the wrong thing" | `nen_get_run_logs()` | Search for keyboard.type() calls, verify what was actually typed |
 
 ---
 

@@ -9,7 +9,7 @@ This guide helps the AI assistant understand **when** and **how** to use Nen Pla
 
 ## ⚠️ PREREQUISITE: API Key Required
 
-**All Nen MCP tools require a valid API key to function.** Without it, every MCP tool call (`nen_run`, `nen_upload`, `nen_validate`, `get_run_logs`, etc.) will fail with an authentication error.
+**All Nen MCP tools require a valid API key to function.** Without it, every MCP tool call (`nen_run`, `nen_update_workflow`, `nen_get_run_logs`, etc.) will fail with an authentication error.
 
 **If a user tries to use any MCP tool and it fails, check whether they have set up their API key first.**
 
@@ -34,32 +34,19 @@ This guide helps the AI assistant understand **when** and **how** to use Nen Pla
 
 ---
 
-## Important Context: Python SDK vs FSM JSON
-
-**Project Standard:** This project uses **Python SDK workflows** (`nen.workflow`), as documented in `.cursorrules`.
-
-**Nen MCP Default:** The `nen_create_workflow` tool generates **FSM JSON workflows** by default.
-
-**Implication:** When using MCP tools, be aware of this distinction and convert or adapt as needed.
-  
 ---
 
 ## Available Nen MCP Tools
 
-### Workflow Creation & Management
-- `nen_create_workflow` - Generate FSM JSON workflow files
-- `nen_validate` - Validate Python workflow structure before deployment
-- `update_workflow` - Update/publish workflow files (supports both JSON and Python)
+### Workflow Management
+- `nen_update_workflow` - Create or update workflow files (supports both JSON and Python); creates a new workflow if no `workflowId` is provided
 - `nen_list_workflows` - List all workflows in deployment
-- `nen_upload` - Upload workflows to Nen platform
 
 ### Workflow Execution & Monitoring
 - `nen_run` - Execute a workflow with parameters
 - `nen_list_runs` - List workflow execution history
-- `get_run_logs` - Retrieve execution logs for debugging
-- `get_run_video` - Get video recording of workflow execution
-- `nen_artifacts` - Download all artifacts (video, logs) via rsync
-- `nen_status` - Check Nen API/service status
+- `nen_get_run_logs` - Retrieve execution logs for debugging
+- `nen_status` - Check run status and get liveViewUrl
 
 ---
 
@@ -99,7 +86,7 @@ AI Action:
 - Logs reveal where validations failed or succeeded
 - Without logs, you're guessing; with logs, you know the truth
 
-**Tools:** `get_run_logs` (always start here), `get_run_video`, `nen_artifacts`
+**Tools:** `nen_get_run_logs` (always start here)
 
 **Common debugging scenarios:**
 - User: "It didn't click the button" → Get logs to see if button was found
@@ -118,56 +105,36 @@ AI Action: Use nen_list_workflows() to list all available workflows
 
 **Why:** Query the Nen platform for deployed workflows.
 
-**Tools:** `nen_list_workflows`, `nen_status`
+**Tools:** `nen_list_workflows`
 
 ---
 
-#### 4. **Validating Workflows Before Deployment**
-
-```
-User: "Validate my workflow" OR "Is my workflow ready to deploy?"
-AI Action: Use nen_validate() to check workflow structure
-```
-
-**Why:** Catches errors before deployment, ensures workflow will execute correctly.
-
-**Tools:** `nen_validate`
-
----
-
-#### 5. **Publishing/Deploying Workflows**
+#### 4. **Publishing/Deploying Workflows**
 
 ```
 User: "Deploy my workflow to production"
-AI Action: 
-  1. Use nen_validate() to check workflow first
-  2. If validation passes, use update_workflow() or nen_upload()
+AI Action: Use nen_update_workflow() to deploy
 ```
 
-**Why:** MCP tools handle platform deployment. Always validate before deploying.
+**Why:** MCP tools handle platform deployment.
 
-**Tools:** `nen_validate`, `update_workflow`, `nen_upload`
+**Tools:** `nen_update_workflow`
 
 ---
 
 ### ⚠️ USE WITH CAUTION For:
 
-#### 6. **Generating New Workflows** (FSM JSON approach)
+#### 6. **Generating New Workflows**
 ```
 User: "Create a workflow to scrape product data"
-AI Decision Tree:
-  - If user wants FSM JSON format → Use nen_create_workflow()
-  - If user wants Python SDK (default) → Use manual authoring with SDK primitives
+AI Action: Author workflow.py locally using SDK primitives (Python SDK is the project standard)
 ```
 
-**Why:** `nen_create_workflow` generates FSM JSON, but this project uses Python SDK.
+**Why:** There is no MCP tool to auto-generate workflows. Always author Python SDK workflows locally in the editor.
 
 **Recommended Approach:**
-1. Ask user: "Do you want a Python SDK workflow (current standard) or FSM JSON workflow?"
-2. If Python SDK: Author manually using `nen.workflow` primitives
-3. If FSM JSON: Use `nen_create_workflow()`
-
-**Tool:** `nen_create_workflow`
+1. Author `workflow.py` locally using `nen.workflow` SDK primitives
+2. Deploy with `nen_update_workflow()`
 
 ---
 
@@ -176,7 +143,7 @@ AI Decision Tree:
 #### 1. **Editing Python Workflow Code**
 ```
 User: "Add a validation step to my workflow.py"
-AI Action: Use StrReplace tool directly ❌ NOT nen_create_workflow
+AI Action: Use StrReplace tool directly
 ```
 
 **Why:** Direct file editing is more precise for code changes.
@@ -200,14 +167,14 @@ AI Action: Use Read tool ❌ NOT nen_list_workflows
 #### 3. **Python Syntax Checking**
 ```
 User: "Check if my Python has syntax errors"
-AI Action: Use ReadLints tool ❌ NOT nen_validate
+AI Action: Use ReadLints tool
 ```
 
 **Why:** Basic Python syntax checking doesn't require API calls.
 
-**Use Instead:** `ReadLints` tool
+**Use Instead:** `ReadLints` tool for quick syntax and structural linting (import errors, indentation, type annotation syntax, etc.).
 
-**Note:** Use `nen_validate` for workflow structure validation (Pydantic models, function signatures, etc.)
+**Note:** Use `ReadLints` for basic Python syntax and structural checks. For workflow-specific pre-deploy validation — Pydantic model definitions, `run()` function signature, required imports, and type hints — manually review the Pre-Flight Checklist before calling `nen_update_workflow()`.
 
 ---
 
@@ -227,17 +194,15 @@ AI Action: Use StrReplace ❌ NOT update_workflow
 
 | User Request | Use MCP? | Tool | Alternative |
 |-------------|----------|------|-------------|
-| "Create a new workflow" | ⚠️ Ask format first | `nen_create_workflow` (FSM) | Manual authoring (Python SDK) |
-| "Validate my workflow" | ✅ Yes | `nen_validate` | N/A |
+| "Create a new workflow" | ❌ No | N/A | Manual authoring (Python SDK) |
 | "Run my workflow" | ✅ Yes | `nen_run` | N/A |
-| "Why did it fail?" or "It should have..." | ✅ Yes - ALWAYS | `get_run_logs` | N/A |
+| "Why did it fail?" or "It should have..." | ✅ Yes - ALWAYS | `nen_get_run_logs` | N/A |
 | "List my workflows" | ✅ Yes | `nen_list_workflows` | `LS` (for local files) |
 | "Edit workflow code" | ❌ No | N/A | `StrReplace` |
 | "Show workflow code" | ❌ No | N/A | `Read` |
-| "Deploy workflow" | ✅ Yes | `nen_validate` + `update_workflow` | N/A |
-| "Download artifacts" | ✅ Yes | `nen_artifacts` | N/A |
+| "Deploy workflow" | ✅ Yes | `nen_update_workflow` | N/A |
 | "Check Python syntax" | ❌ No | N/A | `ReadLints` |
-| "Debug execution" or describe expected behavior | ✅ Yes - PROACTIVELY | `get_run_logs` | N/A |
+| "Debug execution" or describe expected behavior | ✅ Yes - PROACTIVELY | `nen_get_run_logs` | N/A |
 
 ---
 
@@ -245,30 +210,21 @@ AI Action: Use StrReplace ❌ NOT update_workflow
 
 ### For New Workflow Creation:
 
-**Option A: Python SDK (Recommended for this project)**
-1. Read `.cursorrules` for context
-2. Author using `nen.workflow` primitives
-3. Create `workflow.py` file manually
-4. Test locally, then deploy with `update_workflow` if needed
-
-**Option B: FSM JSON (If explicitly requested)**
-1. Use `nen_create_workflow()` to generate FSM JSON
-2. Save to `workflows/my_workflows/[name]/workflow.json`
+**Python SDK (Project Standard)**
+1. Author `workflow.py` using `nen.workflow` primitives
+2. Deploy with `nen_update_workflow()`
 
 ### For Workflow Execution:
 1. Always use `nen_run()` - direct API access
-2. Follow up with `get_run_logs()` if execution fails
+2. Follow up with `nen_get_run_logs()` if execution fails
 
 ### For Debugging:
-1. **ALWAYS use `get_run_logs()` first** when user reports issues or explains expected behavior - fastest, most detailed, shows actual workflow execution
+1. **ALWAYS use `nen_get_run_logs()` first** when user reports issues or explains expected behavior - fastest, most detailed, shows actual workflow execution
 2. **Proactively check logs** when user says "it should have..." or describes what they expected to happen
-3. Use `get_run_video()` if visual debugging needed after reviewing logs
-4. Use `nen_artifacts()` to download all materials locally for offline analysis
 
 ### For Workflow Updates:
 1. Local changes: Edit files directly with `StrReplace`
-2. Validation: Use `nen_validate()` to check changes
-3. Deployment: Use `update_workflow()` to publish changes
+2. Deployment: Use `nen_update_workflow()` to publish changes
 
 ---
 
@@ -280,11 +236,10 @@ AI Action: Use StrReplace ❌ NOT update_workflow
 User: "Create a workflow to login to GitHub"
 
 AI Response:
-"I'll create a Python SDK workflow (the standard for this project).
-If you prefer FSM JSON format, let me know and I can use the Nen 
-MCP create_workflow tool instead."
+"I'll create a Python SDK workflow for this."
 
-[Proceeds to author Python code using nen.workflow SDK]
+[Proceeds to author workflow.py using Agent, Computer, Params, Result]
+[Deploys with nen_update_workflow()]
 ```
 
 ### Example 2: Running and Debugging a Workflow
@@ -295,19 +250,25 @@ User: "Run my ezyvet-login workflow"
 AI Actions:
 1. Call nen_list_workflows() to get workflow ID
 2. Call nen_run(workflowId="...", params={...})
-3. If run fails, call get_run_logs(messageId="...")
+3. If run fails, call nen_get_run_logs(messageId="...")
 4. Analyze logs and suggest fixes
 ```
 
-### Example 3: Validating and Deploying a Workflow
+### Example 3: Deploying a Workflow
 
 ```
 User: "Deploy my workflow to production"
 
 AI Actions:
-1. Read local workflow files (workflow.py)
-2. Call nen_validate() to check workflow structure
-3. If validation passes, call update_workflow(workflowId="...", files=[...])
+1. Read local workflow.py and verify Pre-Flight Checklist passes:
+   - Pydantic Params/Result models defined with type hints
+   - run() function signature is correct
+   - Required imports are present (nen, pydantic)
+   - No macOS keyboard commands, no bare except blocks
+   If any checklist item fails, fix the code before proceeding.
+2. Run ReadLints on workflow.py to catch any remaining syntax errors.
+   If lint errors are found, fix them before proceeding.
+3. Call nen_update_workflow(workflowId="...", files=[...])
 4. Confirm successful deployment
 ```
 
@@ -315,29 +276,16 @@ AI Actions:
 
 ## Best Practices
 
-### 1. **Always Validate Before Deploying**
-Before deploying any workflow to the platform:
-- Use `nen_validate()` to check workflow structure
-- Fix any validation errors before proceeding
-- Only deploy after validation passes
-
-### 2. **Always Check Local Files First**
+### 1. **Always Check Local Files First**
 Before calling MCP tools, check if the information is available locally:
 - Use `Read` for file contents
 - Use `LS` or `Glob` to find files
 - Use MCP only when you need platform interaction
 
-### 3. **Ask About Format Preferences**
-When user requests a new workflow, clarify:
-```
-"Would you like a Python SDK workflow (current project standard) 
-or an FSM JSON workflow?"
-```
-
-### 4. **Combine MCP with Local Tools**
+### 3. **Combine MCP with Local Tools**
 Example: When debugging, read local code AND fetch platform logs:
 1. Read `workflow.py` to see the code
-2. Use `get_run_logs()` to see execution output
+2. Use `nen_get_run_logs()` to see execution output
 3. Correlate code with logs to identify issues
 
 ### 5. **Be Explicit About Tool Usage**
@@ -357,23 +305,12 @@ If MCP tools fail (auth issues, network errors):
 
 ## Tool-Specific Notes
 
-### `nen_validate`
-- **Purpose:** Validates Python workflow structure before deployment
-- **Checks:** Pydantic models, function signatures, required imports, type hints
-- **Use when:** Before every deployment or when user asks to validate
-- **Required:** Always call before `nen_upload()` or `update_workflow()`
-
-### `nen_create_workflow`
-- **Generates:** FSM JSON workflows (not Python SDK)
-- **Use when:** User explicitly wants FSM JSON format
-- **Avoid when:** Project standard is Python SDK (like this project)
-
-### `update_workflow`
+### `nen_update_workflow`
 - **Accepts:** Both JSON and Python files
-- **Use for:** Deploying local changes to Nen platform
-- **Note:** Requires workflow ID (use `nen_list_workflows` to find)
+- **Use for:** Creating new workflows or deploying local changes to Nen platform
+- **Note:** Omit `workflowId` to create a new workflow; include it to update an existing one
 
-### `get_run_logs`
+### `nen_get_run_logs`
 - **Returns:** Full text logs for immediate analysis with complete workflow execution details
 - **Best for:** Debugging any workflow issues, understanding what actually happened
 - **When to use:** 
@@ -394,36 +331,28 @@ If MCP tools fail (auth issues, network errors):
   - Check VLM reasoning to understand why it made certain decisions
   - Compare log output with user's description of expected behavior
 
-### `nen_artifacts`
-- **Downloads:** Video + logs via rsync
-- **Use when:** User needs persistent local copies
-- **Alternative:** `get_run_logs` for logs only (faster)
-
 ---
 
 ## Summary
 
 **Key Principles:**
-1. **Always validate before deploying** using `nen_validate()`
-2. **Use MCP for platform interactions** (validation, execution, deployment, logs)
-3. **Always check logs when debugging** - Use `get_run_logs()` whenever user reports issues or describes expected behavior
-4. **Use local tools for code operations** (editing, reading, syntax checking)
-5. **Clarify format preferences** when creating new workflows
-6. **Be transparent** about which tools you're using
-7. **Prioritize user's project standards** (Python SDK in this case)
+1. **Use MCP for platform interactions** (execution, deployment, logs)
+2. **Always check logs when debugging** - Use `nen_get_run_logs()` whenever user reports issues or describes expected behavior
+3. **Use local tools for code operations** (editing, reading, syntax checking)
+4. **Be transparent** about which tools you're using
+5. **Prioritize user's project standards** (Python SDK in this case)
 
 **Quick Reference:**
-- Validate workflow → `nen_validate`
 - Execute workflow → `nen_run`
-- **Debug ANY issues** → **`get_run_logs`** (ALWAYS check logs when user reports problems or explains expected behavior)
-- Deploy workflow → `nen_validate` + `update_workflow`
+- **Debug ANY issues** → **`nen_get_run_logs`** (ALWAYS check logs when user reports problems or explains expected behavior)
+- Deploy / create workflow → `nen_update_workflow`
 - List workflows → `nen_list_workflows`
-- Create workflow → Ask format first, then choose approach
+- Author workflow code → Manual Python SDK authoring (not MCP)
 - Edit workflow → Direct file editing (not MCP)
 - Check syntax → `ReadLints` (Python syntax)
 
 **Debugging Golden Rule:**
-When user says "it should have..." or "it didn't..." or "why did it..." → **IMMEDIATELY call `get_run_logs()`**
+When user says "it should have..." or "it didn't..." or "why did it..." → **IMMEDIATELY call `nen_get_run_logs()`**
 
 ---
 

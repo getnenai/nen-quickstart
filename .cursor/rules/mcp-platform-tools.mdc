@@ -172,9 +172,9 @@ AI Action: Use ReadLints tool
 
 **Why:** Basic Python syntax checking doesn't require API calls.
 
-**Use Instead:** `ReadLints` tool
+**Use Instead:** `ReadLints` tool for quick syntax and structural linting (import errors, indentation, type annotation syntax, etc.).
 
-**Note:** Use `ReadLints` for all Python syntax and structure checking.
+**Note:** Use `ReadLints` for basic Python syntax and structural checks. For workflow-specific pre-deploy validation — Pydantic model definitions, `run()` function signature, required imports, and type hints — manually review the Pre-Flight Checklist before calling `nen_update_workflow()`.
 
 ---
 
@@ -260,9 +260,16 @@ AI Actions:
 User: "Deploy my workflow to production"
 
 AI Actions:
-1. Read local workflow files (workflow.py)
-2. Call nen_update_workflow(workflowId="...", files=[...])
-3. Confirm successful deployment
+1. Read local workflow.py and verify Pre-Flight Checklist passes:
+   - Pydantic Params/Result models defined with type hints
+   - run() function signature is correct
+   - Required imports are present (nen, pydantic)
+   - No macOS keyboard commands, no bare except blocks
+   If any checklist item fails, fix the code before proceeding.
+2. Run ReadLints on workflow.py to catch any remaining syntax errors.
+   If lint errors are found, fix them before proceeding.
+3. Call nen_update_workflow(workflowId="...", files=[...])
+4. Confirm successful deployment
 ```
 
 ---

@@ -31,13 +31,14 @@ Core Nen workflow authoring principles loaded in every session.
 ### workflow-creation-process.mdc
 **Always applies**
 
-Systematic 4-step process for creating workflows: build → validate → deploy → run.
+Systematic process for creating workflows: gather requirements → build → deploy → run → iterate.
 
 **Contains:**
-- Step 1: Build workflow with Python SDK
-- Step 2: Deploy workflow to Nen platform
-- Step 3: Deploy using Nen platform tools
-- Step 4: Run and verify execution
+- Step 0: Gather requirements and clarify ambiguities
+- Step 1: Build workflow locally with Python SDK (includes Pre-Flight Checklist for validation)
+- Step 2: Deploy using `nen_update_workflow`
+- Step 3: Run and verify execution
+- Step 4: Iterate based on user feedback
 - Complete example flow
 - Quick reference table
 

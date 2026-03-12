@@ -249,7 +249,7 @@ Execute the workflow and **IMMEDIATELY STOP** to let the user observe:
 
 5. **Wait for user to return:**
    - User may ask for logs: **ONLY THEN** call `nen_get_run_logs(messageId="...")`
-   - User may report issues: **ONLY THEN** help debug and iterate (see Step 5)
+   - User may report issues: **ONLY THEN** help debug and iterate (see Step 4)
    - User may be satisfied: workflow creation is complete!
 
 ## Step 4: Iterate Based on User Feedback
@@ -456,6 +456,7 @@ if not agent.verify("Is dashboard loaded?", timeout=30):
 |------|--------|------|-----------------|
 | 1. Build | Create workflow.py | `Write`, `StrReplace` | Continue |
 | 1a. Lint | Check syntax | `ReadLints` | Continue |
+| 1b. Validate | Review Pre-Flight Checklist (Pydantic models, `run()` signature, imports, type hints) | Manual checklist | Fix any failures before deploying |
 | 2. Deploy | Upload to platform | `nen_update_workflow` (with or without `workflowId`) | Continue |
 | 3. Run | Execute workflow | `nen_run` | Continue |
 | 3a. Open Browser | Open live view URL | `Shell` with `open` command | **🛑 STOP IMMEDIATELY** |

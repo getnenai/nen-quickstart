@@ -91,7 +91,7 @@ Once you have enough to proceed, move to Step 1.
 
 ## Step 1: Build the Workflow
 
-Create the Python SDK workflow file using `nen.workflow` primitives:
+Create the Python SDK workflow file using `nen` SDK primitives:
 
 1. **Create directory structure:**
    ```
@@ -188,7 +188,7 @@ Deploy to Nen platform using MCP tools:
  )
  ```
 
-3. **Confirm deployment:**
+2. **Confirm deployment:**
    - Note the returned `workflowId`
    - Confirm successful upload message
 

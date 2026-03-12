@@ -282,20 +282,20 @@ Before calling MCP tools, check if the information is available locally:
 - Use `LS` or `Glob` to find files
 - Use MCP only when you need platform interaction
 
-### 3. **Combine MCP with Local Tools**
+### 2. **Combine MCP with Local Tools**
 Example: When debugging, read local code AND fetch platform logs:
 1. Read `workflow.py` to see the code
 2. Use `nen_get_run_logs()` to see execution output
 3. Correlate code with logs to identify issues
 
-### 5. **Be Explicit About Tool Usage**
+### 3. **Be Explicit About Tool Usage**
 When using MCP tools, tell the user:
 ```
 "I'll use the Nen MCP to execute your workflow..."
 "Let me fetch the execution logs from the platform..."
 ```
 
-### 6. **Handle API Errors Gracefully**
+### 4. **Handle API Errors Gracefully**
 If MCP tools fail (auth issues, network errors):
 - Inform user clearly
 - Suggest checking Cursor Settings → MCP

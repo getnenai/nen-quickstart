@@ -240,7 +240,7 @@ return Result.model_validate(data)
 
 12. **Raise for all failures** — browser won't open, site unreachable, login rejected, extraction empty, page not found → always `raise RuntimeError("...")` or `raise ValueError("...")`
 
-12. **SecureParams fields never have defaults** - `Secure[str]` fields must NOT use `default=` in `Field()`. The platform injects secrets at runtime. Use `Field(min_length=1, description="...")` only.
+13. **SecureParams fields never have defaults** - `Secure[str]` fields must NOT use `default=` in `Field()`. The platform injects secrets at runtime. Use `Field(min_length=1, description="...")` only.
 
 ## For More Details
 

@@ -258,7 +258,7 @@ Write `workflow.py` using the Python SDK (`Agent`, `Computer`, Pydantic `Params`
 
 ### 2. Deploy
 
-```
+```text
 Read workflow.py content
 ↓
 nen_update_workflow({ workflowName: "...", files: [{ filename: "workflow.py", content: "..." }] })
@@ -268,7 +268,7 @@ Note the returned workflowId
 
 ### 3. Execute
 
-```
+```text
 nen_run({ workflowId: "...", params: { ... } })
 ↓
 Open liveViewUrl in browser: open "..."
@@ -278,7 +278,7 @@ Wait for user to observe and return with feedback
 
 ### 4. Debug
 
-```
+```text
 User reports issue
 ↓
 nen_get_run_logs({ messageId: "..." })
@@ -288,7 +288,7 @@ Analyze logs → fix workflow.py → re-deploy → re-run
 
 ### 5. Update
 
-```
+```text
 Edit workflow.py locally
 ↓
 nen_update_workflow({ workflowId: "...", files: [{ filename: "workflow.py", content: "..." }] })

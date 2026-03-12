@@ -127,13 +127,13 @@ AI Action: Use nen_update_workflow() to deploy
 #### 6. **Generating New Workflows**
 ```
 User: "Create a workflow to scrape product data"
-AI Action: Author manually using SDK primitives (Python SDK is the project standard)
+AI Action: Author workflow.py locally using SDK primitives (Python SDK is the project standard)
 ```
 
-**Why:** There is no MCP tool to auto-generate workflows. Always author Python SDK workflows manually.
+**Why:** There is no MCP tool to auto-generate workflows. Always author Python SDK workflows locally in the editor.
 
 **Recommended Approach:**
-1. Author `workflow.py` manually using `nen.workflow` SDK primitives
+1. Author `workflow.py` locally using `nen.workflow` SDK primitives
 2. Deploy with `nen_update_workflow()`
 
 ---
